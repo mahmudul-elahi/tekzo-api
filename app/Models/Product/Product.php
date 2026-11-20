@@ -50,7 +50,7 @@ class Product extends Model
      */
     public function makeSearchableUsing(Collection $models): Collection
     {
-        return $models->loadMissing(['category:id,name', 'brand:id,name']);
+        return $models->loadMissing(['category', 'brand']);
     }
 
     public function toSearchableArray(): array

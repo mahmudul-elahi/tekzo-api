@@ -527,7 +527,9 @@ class HomePageController extends Controller
      */
     private function normalizeSearchQuery(string $query): string
     {
-        return trim(preg_replace(
+        $query = mb_scrub($query, 'UTF-8');
+
+        $normalized = preg_replace(
             [
                 '/\bi\s+(phone|pad|mac|pod)(s?)\b/iu',
                 '/\bair\s+(pods?|tag)\b/iu',
@@ -535,7 +537,9 @@ class HomePageController extends Controller
             ],
             ['i$1$2', 'air$1', 'macbook'],
             $query,
-        ));
+        );
+
+        return trim($normalized ?? $query);
     }
 
     public function searchProduct(Request $request)

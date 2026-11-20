@@ -42,10 +42,12 @@ class ConfigureMeiliSearch extends Command
         // Typo tolerance
         $index->updateTypoTolerance([
             'enabled' => true,
+            // 4/8 stops "redmi" matching "rem" and "s24" matching "s25"
             'minWordSizeForTypos' => [
-                'oneTypo'  => 3,
-                'twoTypos' => 5,
+                'oneTypo'  => 4,
+                'twoTypos' => 8,
             ],
+            'disableOnNumbers' => true,
         ]);
 
 
