@@ -14,7 +14,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 
 class Contact extends Authenticatable implements HasMedia
 {
-    use Notifiable, SoftDeletes, HasApiTokens, InteractsWithMedia;
+    use HasApiTokens, InteractsWithMedia, Notifiable, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -34,16 +34,19 @@ class Contact extends Authenticatable implements HasMedia
         'elite_id',
     ];
 
-    protected $casts = [
-        'email_verified_at' => 'datetime',
-        'phone_verified_at' => 'datetime',
-        'last_login_at' => 'datetime',
-        'online'       => 'boolean',
-        'total_points' => 'integer',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'phone_verified_at' => 'datetime',
+            'last_login_at' => 'datetime',
+            'online' => 'boolean',
+            'total_points' => 'integer',
+            'password' => 'hashed',
+        ];
+    }
 
     protected $hidden = ['password'];
-
 
     public function elite()
     {
@@ -60,12 +63,13 @@ class Contact extends Authenticatable implements HasMedia
         return $this->hasMany(ContactEliteHistory::class);
     }
 
-
     public function getCustomerProfilePictureAttribute(): ?string
     {
-        $profilePicture = $this->getFirstMedia("customer_profile_picture");
+        $profilePicture = $this->getFirstMedia('customer_profile_picture');
+
         return $profilePicture?->getFullUrl();
     }
+
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection('customer_profile_picture')

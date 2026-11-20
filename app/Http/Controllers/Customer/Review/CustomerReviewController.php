@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Customer\Review;
 
+use App\Enums\StatusEnum;
 use App\Exceptions\GeneralException;
 use App\Http\Controllers\Controller;
 use App\Models\Order\Order;
@@ -17,7 +18,7 @@ class CustomerReviewController extends Controller
     public function index()
     {
         $customerId = auth()->guard('customer')->id();
-        $perPage = request('per_page', 10);
+        $perPage = clampPerPage(request('per_page'), 10, 48);
         $reviews = Review::query()
             ->with(['product:id,product_name', 'orderList' => function ($query) {
                 $query->with(['variant' => function ($query) {
@@ -29,6 +30,7 @@ class CustomerReviewController extends Controller
             ->paginate($perPage)
             ->through(function ($review) {
                 $attributeValueId = $review?->orderList?->variant?->attributeValues->pluck('id')->first();
+
                 return [
                     'id' => $review->id,
                     'rating' => $review->rating,
@@ -39,7 +41,7 @@ class CustomerReviewController extends Controller
                         'id' => $review->product->id,
                         'name' => $review->product->product_name,
                         'attribute' => $review?->orderList?->variant?->attributeValues->pluck('value')->implode('/'),
-                        'image' => $this->getFeaturedImage($review->product_id, $attributeValueId)
+                        'image' => $this->getFeaturedImage($review->product_id, $attributeValueId),
                     ] : null,
                 ];
             });
@@ -47,9 +49,9 @@ class CustomerReviewController extends Controller
         return successResponse($reviews);
     }
 
-
     /**
      * Store or update product reviews
+     *
      * @throws GeneralException|Throwable
      */
     public function store(Request $request)
@@ -61,17 +63,16 @@ class CustomerReviewController extends Controller
             'rating' => 'required|numeric|min:1|max:5',
             'comment' => 'nullable|string|max:1000',
             'review_image' => ['nullable', 'file', 'mimes:jpeg,png,jpg,svg', 'max:1024'],
-            //'review_images.*' => 'file|mimes:jpeg,png,jpg,svg|max:5120',
+            // 'review_images.*' => 'file|mimes:jpeg,png,jpg,svg|max:5120',
         ]);
 
         $orderList = OrderList::query()
-            ->whereHas('order', fn($q) => $q->where('contact_id', $customer)->where('status', 7))
+            ->whereHas('order', fn ($q) => $q->where('contact_id', $customer)->where('status', StatusEnum::Complete->value))
             ->find($request->order_detail_id);
 
-        if (!$orderList) {
+        if (! $orderList) {
             throw new GeneralException('Order not found', 404);
         }
-
 
         try {
             DB::beginTransaction();
@@ -80,11 +81,11 @@ class CustomerReviewController extends Controller
                 [
                     'contact_id' => $customer,
                     'product_id' => $orderList->product_id,
-                    'order_detail_id' => $request->order_detail_id
+                    'order_detail_id' => $request->order_detail_id,
                 ],
                 [
                     'rating' => $request->rating,
-                    'comment' => $request->comment ?? null
+                    'comment' => $request->comment ?? null,
                 ]
             );
 
@@ -115,27 +116,29 @@ class CustomerReviewController extends Controller
 
     public function orderProduct($orderId)
     {
-        $order = Order::with(['orderLists' => function ($query) use ($orderId) {
+        $order = Order::with(['orderLists' => function ($query) {
             $query->select('id', 'order_id', 'product_id', 'product_variant_id')
                 ->with([
                     'variant' => function ($query) {
                         $query->with(['attributeValues']);
                     },
-                    'product:id,product_name'
+                    'product:id,product_name',
                 ]);
         }])
             ->where('id', $orderId)
-            ->where('status', 7)
+            ->where('status', StatusEnum::Complete->value)
             ->where('contact_id', auth()->guard('customer')->id())
             ->select(['id', 'status'])
             ->first();
 
-        if (!$order) {
+        if (! $order) {
             return responseMessage(message: 'Order not found', code: 404);
         }
+
         return successResponse(
             $order->orderLists->map(function ($item) {
                 $attributeValueId = $item->variant->attributeValues->pluck('id')->first();
+
                 return [
                     'id' => $item->id,
                     'product' => [
@@ -143,13 +146,12 @@ class CustomerReviewController extends Controller
                         'product_variant_id' => $item->product_variant_id,
                         'name' => $item->product->product_name,
                         'attribute_value' => $item->variant->attributeValues,
-                        'image' => $this->getFeaturedImage($item->product_id, $attributeValueId)
-                    ]
+                        'image' => $this->getFeaturedImage($item->product_id, $attributeValueId),
+                    ],
                 ];
             })
         );
     }
-
 
     private function getFeaturedImage($productId, $attributeValueId)
     {
@@ -158,6 +160,7 @@ class CustomerReviewController extends Controller
             ->where('attribute_value_id', $attributeValueId)
             ->where('is_primary', true)
             ->first();
+
         return $images?->image_path;
     }
 
@@ -168,7 +171,7 @@ class CustomerReviewController extends Controller
         $orderLists = OrderList::query()
             ->whereHas('order', function ($query) use ($customerId) {
                 $query->where('contact_id', $customerId)
-                    ->where('status', 7);
+                    ->where('status', StatusEnum::Complete->value);
             })
             ->with(['product', 'variant.attributeValues', 'order'])
             ->withCount(['review' => function ($query) {
@@ -177,6 +180,7 @@ class CustomerReviewController extends Controller
             ->get()
             ->map(function ($orderList) {
                 $attributeValueId = $orderList?->variant?->attributeValues->pluck('id')->first();
+
                 return [
                     'id' => $orderList->id,
                     'order_id' => $orderList->order_id,
@@ -184,15 +188,14 @@ class CustomerReviewController extends Controller
                     'product_name' => $orderList->product->product_name,
                     'attributes' => $orderList?->variant?->attributeValues ? $orderList->variant->attributeValues->map(function ($attributeValue) {
                         return [
-                            'name' => $attributeValue->value
+                            'name' => $attributeValue->value,
                         ];
                     })->toArray() : [],
                     'image' => $this->getFeaturedImage($orderList->product_id, $attributeValueId),
                     'delivered_at' => $orderList->order->updated_at,
-                    'has_review' => $orderList->review_count
+                    'has_review' => $orderList->review_count,
                 ];
             });
-
 
         return successResponse($orderLists);
     }
@@ -205,11 +208,11 @@ class CustomerReviewController extends Controller
             ->where('id', $orderListId)
             ->whereHas('order', function ($query) use ($customerId) {
                 $query->where('contact_id', $customerId)
-                    ->where('status', 7);
+                    ->where('status', StatusEnum::Complete->value);
             })
             ->with(['product', 'variant.attributeValues', 'order'])
             ->first();
-        if (!$orderList) {
+        if (! $orderList) {
             return responseMessage(message: 'Product not found', code: 404);
         }
 
@@ -221,11 +224,11 @@ class CustomerReviewController extends Controller
             'product_name' => $orderList->product?->product_name,
             'attributes' => $orderList?->variant?->attributeValues ? $orderList->variant->attributeValues->map(function ($attributeValue) {
                 return [
-                    'name' => $attributeValue->value
+                    'name' => $attributeValue->value,
                 ];
             })->toArray() : [],
             'image' => $this->getFeaturedImage($orderList->product_id, $attributeValueId),
-            'delivered_at' => $orderList->order->updated_at
+            'delivered_at' => $orderList->order->updated_at,
         ]);
     }
 }

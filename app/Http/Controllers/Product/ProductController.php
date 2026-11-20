@@ -32,7 +32,7 @@ class ProductController extends Controller
                 ->where('id', $preOwnedId)
                 ->exists();
 
-            if (!$checkPreOwned) {
+            if (! $checkPreOwned) {
                 return errorResponse([], 404);
             }
 
@@ -54,11 +54,11 @@ class ProductController extends Controller
                             'preOwnedSeo',
                         ])->withCount('productViews as view_count')
                             ->withCount('reviews');
-                    }
+                    },
                 ])
                 ->first();
 
-            if (!$preOwned) {
+            if (! $preOwned) {
                 return errorResponse([], 404);
             }
 
@@ -76,7 +76,7 @@ class ProductController extends Controller
                     $query->where('status', true);
                 })->first();
 
-            if (!$checkProduct) {
+            if (! $checkProduct) {
                 return errorResponse([], 404);
             }
 
@@ -125,7 +125,7 @@ class ProductController extends Controller
                 ->withAvg('reviews', 'rating')
                 ->first();
 
-            if (!$product) {
+            if (! $product) {
                 return errorResponse([], 404);
             }
 
@@ -133,12 +133,12 @@ class ProductController extends Controller
                 ->join('coupon_product_scopes', 'coupon_product_scopes.new_coupon_id', '=', 'new_coupons.id')
                 ->where('new_coupons.status', 1)
                 ->where('new_coupons.is_public', true)
-                ->where(fn($q) => $q->whereNull('new_coupons.start_date')->orWhereDate('new_coupons.start_date', '<=', now()))
-                ->where(fn($q) => $q->whereNull('new_coupons.end_date')->orWhereDate('new_coupons.end_date', '>=', now()))
+                ->where(fn ($q) => $q->whereNull('new_coupons.start_date')->orWhereDate('new_coupons.start_date', '<=', now()))
+                ->where(fn ($q) => $q->whereNull('new_coupons.end_date')->orWhereDate('new_coupons.end_date', '>=', now()))
                 ->where(function ($q) use ($product) {
-                    $q->where(fn($q) => $q->where('coupon_product_scopes.scope_type', 'product')->where('coupon_product_scopes.product_id', $product->id))
-                        ->orWhere(fn($q) => $q->where('coupon_product_scopes.scope_type', 'brand')->where('coupon_product_scopes.brand_id', $product->brand_id))
-                        ->orWhere(fn($q) => $q->where('coupon_product_scopes.scope_type', 'category')->where('coupon_product_scopes.category_id', $product->category_id))
+                    $q->where(fn ($q) => $q->where('coupon_product_scopes.scope_type', 'product')->where('coupon_product_scopes.product_id', $product->id))
+                        ->orWhere(fn ($q) => $q->where('coupon_product_scopes.scope_type', 'brand')->where('coupon_product_scopes.brand_id', $product->brand_id))
+                        ->orWhere(fn ($q) => $q->where('coupon_product_scopes.scope_type', 'category')->where('coupon_product_scopes.category_id', $product->category_id))
                         ->orWhere('coupon_product_scopes.scope_type', 'all');
                 })
                 ->orderByRaw("CASE
@@ -170,12 +170,12 @@ class ProductController extends Controller
             $ip = request()->ip();
         }
 
-        $visitorHash = md5($ip . request()->userAgent());
+        $visitorHash = md5($ip.request()->userAgent());
 
         DB::table('product_views')->insertOrIgnore([
-            'product_id'   => $productId,
+            'product_id' => $productId,
             'visitor_hash' => $visitorHash,
-            'viewed_at'    => now(),
+            'viewed_at' => now(),
         ]);
     }
 
@@ -186,7 +186,7 @@ class ProductController extends Controller
             ->whereSlug($slug)
             ->first();
 
-        if (!$product) {
+        if (! $product) {
             return errorResponse([], 404);
         }
 
@@ -200,9 +200,9 @@ class ProductController extends Controller
 
         $ratingSummary = Review::query()
             ->where('product_id', $productId)
-            ->where('status', \App\Enums\StatusEnum::Active)
+            ->where('status', StatusEnum::Active)
             // ->where('is_admin_review', false)
-            ->selectRaw("
+            ->selectRaw('
             COUNT(*) as total_reviews,
             ROUND(AVG(rating),1) as avg_rating,
             SUM(rating = 5) as five_star,
@@ -210,7 +210,7 @@ class ProductController extends Controller
             SUM(rating = 3) as three_star,
             SUM(rating = 2) as two_star,
             SUM(rating = 1) as one_star
-        ")
+        ')
             ->first();
 
         /*
@@ -222,26 +222,25 @@ class ProductController extends Controller
         $reviews = Review::query()
             ->with('contact:id,name')
             ->where('product_id', $productId)
-            ->where('status', \App\Enums\StatusEnum::Active)
+            ->where('status', StatusEnum::Active)
             ->latest('id')
-            ->paginate(request('per_page', 5));
+            ->paginate(clampPerPage(request('per_page'), 5, 48));
 
         return successResponse([
-            'average' => (float)($ratingSummary->avg_rating ?? 0),
+            'average' => (float) ($ratingSummary->avg_rating ?? 0),
 
-            'total' => (int)($ratingSummary->total_reviews ?? 0),
+            'total' => (int) ($ratingSummary->total_reviews ?? 0),
 
             'stars' => [
-                5 => (int)($ratingSummary->five_star ?? 0),
-                4 => (int)($ratingSummary->four_star ?? 0),
-                3 => (int)($ratingSummary->three_star ?? 0),
-                2 => (int)($ratingSummary->two_star ?? 0),
-                1 => (int)($ratingSummary->one_star ?? 0),
+                5 => (int) ($ratingSummary->five_star ?? 0),
+                4 => (int) ($ratingSummary->four_star ?? 0),
+                3 => (int) ($ratingSummary->three_star ?? 0),
+                2 => (int) ($ratingSummary->two_star ?? 0),
+                1 => (int) ($ratingSummary->one_star ?? 0),
             ],
             'reviews' => new ProductReviewCollection($reviews),
         ]);
     }
-
 
     public function relatedProduct(string $slug)
     {
@@ -250,7 +249,7 @@ class ProductController extends Controller
             ->whereSlug($slug)
             ->first();
 
-        if (!$product) {
+        if (! $product) {
             return errorResponse([], 404);
         }
 
@@ -312,13 +311,12 @@ class ProductController extends Controller
             })
             ->whereHas(
                 'variants',
-                fn($q) => $q
+                fn ($q) => $q
                     ->where('stock', true)
                     ->where('status', '1')
-                    ->whereHas('price', fn($p) => $p->where('max_retail_price', '>', 0))
+                    ->whereHas('price', fn ($p) => $p->where('max_retail_price', '>', 0))
             );
     }
-
 
     // Lightweight category lookup — just what the hero banner needs (name,
     // banner) — so it can render without waiting on the full paginated
@@ -330,7 +328,7 @@ class ProductController extends Controller
             ->select(['name', 'banner'])
             ->first();
 
-        if (!$category) {
+        if (! $category) {
             return errorResponse([], 404);
         }
 
@@ -347,7 +345,7 @@ class ProductController extends Controller
             ->with(['longDescription:id,model_id,description', 'children.children']) // nested children load
             ->first();
 
-        if (!$category) {
+        if (! $category) {
             return errorResponse([], 404);
         }
 
@@ -366,7 +364,7 @@ class ProductController extends Controller
             });
 
         (new ProductFilter([
-            'stock'     => $request->input('stock'),
+            'stock' => $request->input('stock'),
             'min_price' => $request->input('min_price'),
             'max_price' => $request->input('max_price'),
         ]))->apply($baseQuery);
@@ -420,7 +418,7 @@ class ProductController extends Controller
             }])
             ->withCount(['giftProduct', 'cares'])
             ->withAvg('reviews', 'rating')
-            ->paginate((int) $request->input('per_page', 12));
+            ->paginate(clampPerPage($request->input('per_page'), 12, 48));
 
         $category->setRelation('products', $products);
         $category->setAttribute('available_brands', $brands);
@@ -435,7 +433,7 @@ class ProductController extends Controller
             ->with(['longDescription:id,model_id,description'])
             ->first();
 
-        if (!$brand) {
+        if (! $brand) {
             return errorResponse([], 404);
         }
 
@@ -444,7 +442,7 @@ class ProductController extends Controller
             ->where('brand_id', $brand->id)
             ->tap(function ($query) use ($request) {
                 (new ProductFilter([
-                    'stock'     => $request->input('stock'),
+                    'stock' => $request->input('stock'),
                     'min_price' => $request->input('min_price'),
                     'max_price' => $request->input('max_price'),
                 ]))->apply($query);
@@ -492,7 +490,7 @@ class ProductController extends Controller
                     $q->where('status', '1')
                         ->orderByLowestPrice()
                         ->with(['price']);
-                }
+                },
             ])
             ->withCount(['giftProduct', 'cares'])
             ->withAvg('reviews', 'rating')
@@ -501,7 +499,7 @@ class ProductController extends Controller
                     $q->where('slug', $request->category);
                 });
             })
-            ->paginate((int) $request->input('per_page', 12));
+            ->paginate(clampPerPage($request->input('per_page'), 12, 48));
 
         $brand->setRelation('products', $products);
 
@@ -516,7 +514,7 @@ class ProductController extends Controller
             ->where('id', $preOwnedId)
             ->exists();
 
-        if (!$checkPreOwned) {
+        if (! $checkPreOwned) {
             return errorResponse([], 404);
         }
 
@@ -526,7 +524,7 @@ class ProductController extends Controller
             },
             'attributes' => function ($q) {
                 $q->with('attribute', 'attributeValue');
-            }
+            },
         ];
 
         // Step 1: Get related preowned items matching the same product slug

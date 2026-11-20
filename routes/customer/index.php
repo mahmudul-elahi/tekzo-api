@@ -13,6 +13,7 @@ use App\Http\Controllers\Invoice\InvoiceDownoloadController;
 use App\Http\Controllers\Order\OrderController;
 use App\Http\Controllers\SellDeviceRequest\SellDeviceRequestController;
 use App\Http\Controllers\Warranty\WarrantyClaimController;
+use App\Http\Controllers\Wishlist\WishlistController;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Route;
 
@@ -31,16 +32,20 @@ Route::group(['prefix' => 'v1/customer', 'as' => 'customer.', 'middleware' => ['
         ->name('profile.logout');
 
     $router->post('email-verify-request', [ProfileController::class, 'emailVerifyRequest'])
-        ->name('profile.email-verify-request');
+        ->name('profile.email-verify-request')
+        ->middleware('throttle:otp-send');
 
     $router->post('email-verify', [ProfileController::class, 'emailVerify'])
-        ->name('profile.email-verify');
+        ->name('profile.email-verify')
+        ->middleware('throttle:otp-verify');
 
     $router->post('phone-verify-request', [ProfileController::class, 'phoneVerifyRequest'])
-        ->name('profile.phone-verify-request');
+        ->name('profile.phone-verify-request')
+        ->middleware('throttle:otp-send');
 
     $router->post('phone-verify', [ProfileController::class, 'phoneVerify'])
-        ->name('profile.phone-verify');
+        ->name('profile.phone-verify')
+        ->middleware('throttle:otp-verify');
 
     $router->get('shipping-address', [ShippingAddressController::class, 'index']);
     $router->apiResource('addresses', AddressController::class);
@@ -57,12 +62,11 @@ Route::group(['prefix' => 'v1/customer', 'as' => 'customer.', 'middleware' => ['
     $router->delete('carts/{id}', [CartController::class, 'destroy']);
     $router->patch('carts/item/select-toggle', [CartController::class, 'toggleSelect']);
 
-
-    $router->apiResource('wishlists', \App\Http\Controllers\Wishlist\WishlistController::class)
+    $router->apiResource('wishlists', WishlistController::class)
         ->except(['show', 'destroy']);
 
-    $router->delete('wishlists/{id}', [\App\Http\Controllers\Wishlist\WishlistController::class, 'destroy']);
-    $router->patch('wishlists/item/select-toggle', [\App\Http\Controllers\Wishlist\WishlistController::class, 'toggleSelect']);
+    $router->delete('wishlists/{id}', [WishlistController::class, 'destroy']);
+    $router->patch('wishlists/item/select-toggle', [WishlistController::class, 'toggleSelect']);
 
     $router->post('apply-coupon', [CouponController::class, 'applyCoupon']);
     $router->delete('remove-coupon', [CouponController::class, 'removeCoupon']);
@@ -82,20 +86,22 @@ Route::group(['prefix' => 'v1/customer', 'as' => 'customer.', 'middleware' => ['
 Route::group(['prefix' => 'v1/customer', 'as' => 'customer.'], function (Router $router) {
 
     $router->post('gust-check-coupon', [BuyNowController::class, 'checkCoupon']);
-    $router->post('gust-buy-now', [BuyNowController::class, 'gustBuyNow']);
+    $router->post('gust-buy-now', [BuyNowController::class, 'gustBuyNow'])->middleware('throttle:public-write');
     $router->post('success', [BuyNowController::class, 'success']);
     $router->post('cancel', [BuyNowController::class, 'cancel']);
     $router->post('fail', [BuyNowController::class, 'failed']);
 
     $router->get('bkash-callback', [BuyNowController::class, 'bkashCallback']);
-    $router->get('invoice-download', [InvoiceDownoloadController::class, 'invoiceDownload']);
-    $router->get('recent-order', [InvoiceDownoloadController::class, 'recentOrder']);
+    $router->get('invoice-download', [InvoiceDownoloadController::class, 'invoiceDownload'])->middleware('throttle:invoice-tracking');
+    $router->get('recent-order', [InvoiceDownoloadController::class, 'recentOrder'])->middleware('throttle:invoice-tracking');
 
     $router->post('gust-phone-verify-request', [GustPhoneController::class, 'phoneVerifyRequest'])
-        ->name('profile.gust-phone-verify-request');
+        ->name('profile.gust-phone-verify-request')
+        ->middleware('throttle:otp-send');
 
     $router->post('gust-phone-verify', [GustPhoneController::class, 'phoneVerify'])
-        ->name('profile.gust-phone-verify');
+        ->name('profile.gust-phone-verify')
+        ->middleware('throttle:otp-verify');
 
     $router->post('warranty-claims', [WarrantyClaimController::class, 'store']);
 });

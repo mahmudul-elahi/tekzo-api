@@ -23,16 +23,14 @@ use App\Http\Controllers\Shop\ShopController;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Route;
 
-
 Route::get('/', function () {
     return responseMessage('Welcome to Salamat Innovation');
 });
 
 // Customer Routes
-include_route_files(__DIR__ . '/customer/');
+include_route_files(__DIR__.'/customer/');
 
 Route::group(['prefix' => 'v1', 'as' => 'api.'], function (Router $router) {
-
 
     $router->get('search-products', [HomePageController::class, 'searchProduct'])
         ->name('search.product');
@@ -58,7 +56,6 @@ Route::group(['prefix' => 'v1', 'as' => 'api.'], function (Router $router) {
     $router->get('category-products', [HomePageController::class, 'categoryProducts'])
         ->name('category-products');
 
-
     $router->get('sliders', [HomePageController::class, 'slider'])
         ->name('sliders');
 
@@ -79,10 +76,8 @@ Route::group(['prefix' => 'v1', 'as' => 'api.'], function (Router $router) {
 
     $router->get('home-pre-owned-products', [HomePageController::class, 'homePreOwnedProduct']);
 
-
     $router->get('news', [HomePageController::class, 'news'])
         ->name('news.home');
-
 
     $router->get('blogs', [BlogController::class, 'index'])
         ->name('blogs.index');
@@ -126,7 +121,6 @@ Route::group(['prefix' => 'v1', 'as' => 'api.'], function (Router $router) {
     $router->get('pre-owned-related/{slug}/products', [ProductController::class, 'preOwnedRelatedProduct'])
         ->name('pre-owned-products.related');
 
-
     $router->get('category/{slug}', [ProductController::class, 'categoryInfo'])
         ->name('category.info');
 
@@ -141,7 +135,6 @@ Route::group(['prefix' => 'v1', 'as' => 'api.'], function (Router $router) {
 
     $router->get('offer/{slug}/products', [OfferController::class, 'offerProduct'])
         ->name('offers.products');
-
 
     $router->get('pre-owneds', [PreOwnedController::class, 'index'])
         ->name('pre-owneds.index');
@@ -168,7 +161,8 @@ Route::group(['prefix' => 'v1', 'as' => 'api.'], function (Router $router) {
         ->name('policies.details');
 
     $router->post('contacts', [ContactController::class, 'store'])
-        ->name('contacts.store');
+        ->name('contacts.store')
+        ->middleware('throttle:public-write');
 
     $router->get('settings', [SettingController::class, 'index'])
         ->name('settings.index');
@@ -191,15 +185,16 @@ Route::group(['prefix' => 'v1', 'as' => 'api.'], function (Router $router) {
     $router->get('outlets/{slug}/detail', [OutletController::class, 'outletDetail'])
         ->name('outlets.view');
 
-
     $router->get('our-teams', [OurTeamController::class, 'index'])
         ->name('our-teams.index');
 
     $router->post('order-tracking', [OrderTrackController::class, 'orderTracking'])
-        ->name('order-tracking');
+        ->name('order-tracking')
+        ->middleware('throttle:invoice-tracking');
 
     $router->post('product-verify', [OrderTrackController::class, 'productVerify'])
-        ->name('product-verify');
+        ->name('product-verify')
+        ->middleware('throttle:invoice-tracking');
 
     $router->get('districts', [SettingController::class, 'district'])
         ->name('addresses.district');
@@ -214,7 +209,8 @@ Route::group(['prefix' => 'v1', 'as' => 'api.'], function (Router $router) {
         ->name('storages');
 
     $router->post('job-apply/{slug}', [CareerApplieController::class, 'store'])
-        ->name('job.apply');
+        ->name('job.apply')
+        ->middleware('throttle:public-write');
 
     $router->get('emi-list', [EmiController::class, 'index'])
         ->name('emi-list.index');
@@ -225,7 +221,6 @@ Route::group(['prefix' => 'v1', 'as' => 'api.'], function (Router $router) {
     $router->get('elite', [EliteController::class, 'index'])
         ->name('elite.index');
 });
-
 
 // SSLCommerz Webhook Routes
 

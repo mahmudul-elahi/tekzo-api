@@ -7,6 +7,7 @@ use App\Models\Contact\Contact;
 use App\Models\Customer\Customer;
 use App\Models\NewDistrict\NewDistrict;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CustomerAddress extends Model
 {
@@ -22,28 +23,31 @@ class CustomerAddress extends Model
         'is_default',
     ];
 
-    public $casts = [
-        'is_default' => 'boolean',
-        'is_default_shipping' => 'boolean',
-        'is_default_billing' => 'boolean',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'is_default' => 'boolean',
+            'is_default_shipping' => 'boolean',
+            'is_default_billing' => 'boolean',
+        ];
+    }
 
-    public function contact(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function contact(): BelongsTo
     {
         return $this->belongsTo(Contact::class);
     }
 
-    public function customer(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
     }
 
-    public function district(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function district(): BelongsTo
     {
         return $this->belongsTo(NewDistrict::class, 'new_district_id');
     }
 
-    public function area(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function area(): BelongsTo
     {
         return $this->belongsTo(Area::class);
     }

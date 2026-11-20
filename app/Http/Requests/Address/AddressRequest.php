@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Address;
 
+use App\Models\Address\CustomerAddress;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -12,7 +13,17 @@ class AddressRequest extends FormRequest
      */
     public function authorize(): bool
     {
+        $address = $this->route('address');
+        if ($address instanceof CustomerAddress) {
+            return (int) $address->contact_id === (int) auth()->guard('customer')->id();
+        }
+
         return true;
+    }
+
+    protected function failedAuthorization(): void
+    {
+        abort(responseMessage('Address not found', 404));
     }
 
     /**

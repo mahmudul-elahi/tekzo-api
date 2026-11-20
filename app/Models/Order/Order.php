@@ -8,6 +8,8 @@ use App\Models\Concerns\BelongsToTenant;
 use App\Models\Contact\Contact;
 use App\Models\NewDistrict\NewDistrict;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Order extends Model
 {
@@ -43,31 +45,44 @@ class Order extends Model
         'additional_value',
     ];
 
-    protected $casts = [
-        'total_booking_amount' => 'decimal:2',
-    ];
+    protected static function booted(): void
+    {
+        static::created(function (Order $order) {
+            if (empty($order->invoice_number)) {
+                $order->invoice_number = 'ORD-'.date('Ymd').'-'.str_pad((string) $order->id, 6, '0', STR_PAD_LEFT);
+                $order->saveQuietly();
+            }
+        });
+    }
 
-    public function orderLists(): \Illuminate\Database\Eloquent\Relations\HasMany
+    protected function casts(): array
+    {
+        return [
+            'total_booking_amount' => 'decimal:2',
+        ];
+    }
+
+    public function orderLists(): HasMany
     {
         return $this->hasMany(OrderList::class, 'order_id', 'id');
     }
 
-    public function contact(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function contact(): BelongsTo
     {
         return $this->belongsTo(Contact::class, 'contact_id', 'id');
     }
 
-    public function area(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function area(): BelongsTo
     {
         return $this->belongsTo(Area::class, 'area_id', 'id');
     }
 
-    public function district(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function district(): BelongsTo
     {
         return $this->belongsTo(NewDistrict::class, 'new_district_id', 'id');
     }
 
-    public function shippingAddress(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function shippingAddress(): BelongsTo
     {
         return $this->belongsTo(CustomerAddress::class, 'shipping_address_id', 'id');
     }

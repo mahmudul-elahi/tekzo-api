@@ -7,12 +7,18 @@ use App\Models\Order\Order;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Milon\Barcode\DNS1D;
+use Throwable;
 
 class OrderConfirmJob implements ShouldQueue
 {
     use Queueable;
+
+    public int $tries = 3;
+
+    public array $backoff = [60, 300, 600];
 
     /**
      * Create a new job instance.
@@ -31,41 +37,43 @@ class OrderConfirmJob implements ShouldQueue
             $query->with([
                 'preOwned.attributes.attributeValue',
                 'product',
-                'variant.attributeValues'
+                'variant.attributeValues',
+                'productCare.care',
+                'preOwnedCare.care',
             ]);
         }]);
 
         $totalDiscount = $order->orderLists->sum(function ($item) {
-            return (float)$item->discount_amount ?? 0;
+            return (float) ($item->discount_amount ?? 0);
         });
 
         $totalUnitPrice = $order->orderLists->sum(function ($item) {
-            return ($item->product_price * $item->quantity);
+            return $item->product_price * $item->quantity;
         });
 
         $totalCareCharge = $order->orderLists->sum(function ($item) {
             $chargeValue = $item->productCare ? ($item->productCare->care?->value ?? 0) : 0;
+
             return ($item->product_price * $item->quantity) * ($chargeValue / 100);
         });
 
         $totalPurchasePoint = $order->orderLists->sum(function ($item) {
             $point = $item->product ? ($item->product->purchase_point ?? 0) : 0;
-            return ($point * $item->quantity);
+
+            return $point * $item->quantity;
         });
 
-
         $data = [
-
             'taka' => public_path('asset/taka.png'),
             'fontBangla' => storage_path('fonts/NotoSansBengali-Regular.ttf'),
-            'barcode' => 'data:image/png;base64,' . (new DNS1D)->getBarcodePNG($order->invoice_number, "C128"),
+            'barcode' => 'data:image/png;base64,'.(new DNS1D)->getBarcodePNG($order->invoice_number, 'C128'),
             'totalUnitPrice' => $totalUnitPrice,
             'totalCareCharge' => $totalCareCharge,
             'totalPurchasePoint' => $totalPurchasePoint,
             'order' => $order,
             'customer' => $order->contact,
             'items' => $order->orderLists,
-            'logo' => "https://salamat-innovation.s3.ap-south-1.amazonaws.com/575/TEKZO-Logo-1000x500.png",
+            'logo' => config('services.invoice.confirm_logo_url', 'https://salamat-innovation.s3.ap-south-1.amazonaws.com/575/TEKZO-Logo-1000x500.png'),
             'totalDiscount' => $totalDiscount,
         ];
 
@@ -75,20 +83,18 @@ class OrderConfirmJob implements ShouldQueue
             ->setOption('isHtml5ParserEnabled', true)
             ->setOption('isRemoteEnabled', true);
 
-        $fileName = 'invoice_' . $order->invoice_number . '.pdf';
-        $path = storage_path('app/public/' . $fileName);
-
-        file_put_contents($path, $pdf->output());
+        $pdfData = $pdf->output();
 
         try {
             Mail::to($order->contact?->email)
-                ->send(new OrderConfirmMail($order, $path));
-
-            if (file_exists($path)) {
-                unlink($path);
-            }
-        } catch (\Exception $e) {
-            // optional: log error
+                ->send(new OrderConfirmMail($order, null, $pdfData));
+        } catch (Throwable $e) {
+            Log::error('OrderConfirmJob failed to send invoice mail', [
+                'order_id' => $order->id,
+                'email' => $order->contact?->email,
+                'error' => $e->getMessage(),
+            ]);
+            throw $e;
         }
     }
 }

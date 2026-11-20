@@ -21,7 +21,7 @@ class BlogController extends Controller
             ->orderBy('pinned_position')
             ->orderBy('created_at', 'desc')
             ->orderByDesc('id')
-            ->paginate(request('per_page', 12));
+            ->paginate(clampPerPage(request('per_page'), 12, 48));
 
         return successResponse($blogs);
     }
@@ -34,7 +34,7 @@ class BlogController extends Controller
             ->where('slug', $slug)
             ->first();
 
-        if (!$blog) {
+        if (! $blog) {
             return errorResponse('Blog post not found', 404);
         }
 
@@ -50,14 +50,14 @@ class BlogController extends Controller
             ->where('is_published', true)
             ->where('slug', $slug)->first();
 
-        if (!$tag) {
+        if (! $tag) {
             return errorResponse('Tag not found', 404);
         }
 
         $posts = $tag->posts()
             ->with(['category:id,name', 'author:id,name'])
             ->orderBy('created_at', 'desc')
-            ->paginate(request('per_page', 12));
+            ->paginate(clampPerPage(request('per_page'), 12, 48));
 
         return successResponse([
             'tag' => [
@@ -115,7 +115,7 @@ class BlogController extends Controller
             ->orderBy('created_at', 'desc')
             ->first();
 
-        if (!$featuredBlogs) {
+        if (! $featuredBlogs) {
             return errorResponse('No featured blog found', 404);
         }
 
@@ -136,7 +136,6 @@ class BlogController extends Controller
             ->orderByDesc('id')
             ->take(4)
             ->get();
-
 
         if ($recentBlogs->isEmpty()) {
             return errorResponse('No recent blogs found', 404);
@@ -159,6 +158,7 @@ class BlogController extends Controller
         if ($popularBlogs->isEmpty()) {
             return errorResponse('No popular blogs found', 404);
         }
+
         return successResponse(BlogPostResource::collection($popularBlogs));
     }
 
@@ -175,6 +175,7 @@ class BlogController extends Controller
         if ($trendingBlogs->isEmpty()) {
             return errorResponse('No trending blogs found', 404);
         }
+
         return successResponse(BlogPostResource::collection($trendingBlogs));
     }
 
@@ -182,15 +183,14 @@ class BlogController extends Controller
     {
 
         $page = Page::query()
-            ->whereHas('tenant', fn($query) => $query->where('slug', config('services.tenant_slug')))
+            ->whereHas('tenant', fn ($query) => $query->where('slug', config('services.tenant_slug')))
             ->where('slug', $slug)
             ->select(['id', 'slug', 'title', 'description', 'tags', 'primary_logo', 'shop_banner', 'info_banner', 'tenant_id'])
             ->first();
 
-        if (!$page) {
+        if (! $page) {
             return null;
         }
-
 
         $seo = DB::table('seo')
             ->where('model_id', $page->id)
@@ -204,7 +204,7 @@ class BlogController extends Controller
             'description' => $seo->description,
             'page_description' => $page->description ?? null,
             'tags' => $seo->tags,
-            'canonical' => config('services.front_base_url') . '/' . $page->slug,
+            'canonical' => config('services.front_base_url').'/'.$page->slug,
             'logo' => $page->primary_logo ?? null,
             'banner' => $page->shop_banner ?? null,
             'info_banner' => $page->info_banner ?? null,

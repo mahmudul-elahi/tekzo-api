@@ -22,15 +22,13 @@ use App\Models\PreOwned\PreOwned;
 use App\Models\Product\Product;
 use App\Models\Product\ProductVariant;
 use App\Models\Reels\ReelsVideo;
-use App\Models\Seo\Seo;
 use App\Models\Slider\Slider;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-
 
 class HomePageController extends Controller
 {
-
     public function homeCategory()
     {
         return Category::query()
@@ -39,7 +37,7 @@ class HomePageController extends Controller
             ->whereHas('products', function ($query) {
                 $query->whereIn('status', [
                     ProductStatus::Active->value,
-                    ProductStatus::Comming->value
+                    ProductStatus::Comming->value,
                 ]);
             })
             ->orderByRaw('CASE WHEN serial = 0 OR serial IS NULL THEN 1 ELSE 0 END')
@@ -67,7 +65,7 @@ class HomePageController extends Controller
             })
             ->whereDoesntHave('children')
             ->get()
-            ->sortBy(fn($category) => $this->categoryOrderChainKey($category, $allCategories))
+            ->sortBy(fn ($category) => $this->categoryOrderChainKey($category, $allCategories))
             ->values();
 
         return successResponse($categories);
@@ -78,19 +76,19 @@ class HomePageController extends Controller
      * (root -> ... -> leaf) of "order" values, so branches are ranked by their true
      * position in the tree instead of just their immediate parent's order.
      */
-    private function categoryOrderChainKey(Category $category, \Illuminate\Support\Collection $allCategories): string
+    private function categoryOrderChainKey(Category $category, Collection $allCategories): string
     {
         $chain = [];
         $current = $category;
         $visited = [];
 
-        while ($current && !isset($visited[$current->id])) {
+        while ($current && ! isset($visited[$current->id])) {
             $visited[$current->id] = true;
             // Pair order with id at every level: two different branches that tie on
             // "order" at some ancestor level must still stay grouped separately by
             // branch, instead of their leaves interleaving on the next level's order.
             array_unshift($chain, str_pad((string) ($current->order ?? 0), 6, '0', STR_PAD_LEFT)
-                . '_' . str_pad((string) $current->id, 8, '0', STR_PAD_LEFT));
+                .'_'.str_pad((string) $current->id, 8, '0', STR_PAD_LEFT));
             $current = $current->parent_id ? $allCategories->get($current->parent_id) : null;
         }
 
@@ -101,7 +99,7 @@ class HomePageController extends Controller
         // real root. A short chain from a broken parent link would otherwise sort as a
         // string-prefix of longer, correct chains and jump ahead of them, so push it
         // to the very end instead.
-        return $current ? '999999-' . $key : $key;
+        return $current ? '999999-'.$key : $key;
     }
 
     public function categoryTree()
@@ -148,7 +146,7 @@ class HomePageController extends Controller
 
         return successResponse([
             'brands' => $brands,
-            'seoData' => $this->getPageWithSeo('brands')
+            'seoData' => $this->getPageWithSeo('brands'),
         ]);
     }
 
@@ -168,7 +166,7 @@ class HomePageController extends Controller
             ->whereHas('products', function ($query) {
                 $query->whereIn('status', [
                     ProductStatus::Active->value,
-                    ProductStatus::Comming->value
+                    ProductStatus::Comming->value,
                 ])->whereHas('brand', function ($q) {
                     $q->where('status', true);
                 });
@@ -208,14 +206,14 @@ class HomePageController extends Controller
                         'is_unofficial',
                         'is_refurbished',
                         'purchase_point',
-                        'booking_amount'
+                        'booking_amount',
                     ])
                         ->addSelect([
                             'display_price' => DB::raw($displayPriceSql),
                         ])
                         ->whereIn('status', [
                             ProductStatus::Active->value,
-                            ProductStatus::Comming->value
+                            ProductStatus::Comming->value,
                         ])
                         ->whereHas('brand', function ($q) {
                             $q->where('status', true);
@@ -227,7 +225,7 @@ class HomePageController extends Controller
                                 $q->where('status', '1')
                                     ->orderByLowestPrice()
                                     ->with('price');
-                            }
+                            },
                         ])
                         ->withCount(['giftProduct', 'cares'])
                         ->withAvg('reviews', 'rating')
@@ -235,32 +233,30 @@ class HomePageController extends Controller
                         ->orderByRaw("$displayPriceSql DESC")
                         ->orderByDesc('products.created_at')
                         ->take(2);
-                }
+                },
             ])
             ->get()
-            ->sortBy(fn($category) => $this->categoryOrderChainKey($category, $allCategories))
+            ->sortBy(fn ($category) => $this->categoryOrderChainKey($category, $allCategories))
             ->values();
 
         return successResponse([
             'categories' => CategoryResource::collection($categories),
-            'seoData'    => $this->getPageWithSeo('categories')
+            'seoData' => $this->getPageWithSeo('categories'),
         ]);
     }
-
 
     protected function getPageWithSeo(string $slug)
     {
 
         $page = Page::query()
-            ->whereHas('tenant', fn($query) => $query->where('slug', config('services.tenant_slug')))
+            ->whereHas('tenant', fn ($query) => $query->where('slug', config('services.tenant_slug')))
             ->where('slug', $slug)
             ->select(['id', 'slug', 'title', 'description', 'tags', 'primary_logo', 'shop_banner', 'info_banner', 'tenant_id'])
             ->first();
 
-        if (!$page) {
+        if (! $page) {
             return null;
         }
-
 
         $seo = DB::table('seo')
             ->where('model_id', $page->id)
@@ -274,7 +270,7 @@ class HomePageController extends Controller
             'description' => $seo->description,
             'page_description' => $page->description ?? null,
             'tags' => $seo->tags,
-            'canonical' => config('services.front_base_url') . '/' . $page->slug,
+            'canonical' => config('services.front_base_url').'/'.$page->slug,
             'logo' => $page->primary_logo ?? null,
             'banner' => $page->shop_banner ?? null,
             'info_banner' => $page->info_banner ?? null,
@@ -282,11 +278,10 @@ class HomePageController extends Controller
         ] : null;
     }
 
-
     public function slider()
     {
         $baseSliderQuery = Slider::query()
-            ->whereHas('tenant', fn($query) => $query->where('slug', config('services.tenant_slug')))
+            ->whereHas('tenant', fn ($query) => $query->where('slug', config('services.tenant_slug')))
             ->where('is_active', StatusEnum::Active->value)
             ->select([
                 'id',
@@ -359,7 +354,7 @@ class HomePageController extends Controller
             ->latest()
             ->first();
 
-        if (!$flashSales) {
+        if (! $flashSales) {
             return successResponse(['products' => [], 'offer' => null]);
         }
 
@@ -372,7 +367,7 @@ class HomePageController extends Controller
                 'has_stock' => ProductVariant::selectRaw('MAX(stock)')
                     ->whereColumn('product_id', 'products.id')
                     ->where('status', '1')
-                    ->limit(1)
+                    ->limit(1),
             ])
             ->with(['category:id,name,slug', 'offerProduct' => function ($query) use ($flashSales) {
                 $query->where('offer_id', $flashSales->id);
@@ -380,7 +375,7 @@ class HomePageController extends Controller
                 $q->where('status', '1')
                     ->with(['price']);
             }])
-            
+
             ->withCount(['offerProduct', 'cares'])
             ->withAvg('reviews', 'rating')
             ->orderByRaw('has_stock DESC')
@@ -397,7 +392,7 @@ class HomePageController extends Controller
                 'start_at' => $flashSales->start_at,
                 'end_at' => $flashSales->end_at,
             ],
-            'seoData'    => $this->getPageWithSeo('flash-sale')
+            'seoData' => $this->getPageWithSeo('flash-sale'),
         ]);
     }
 
@@ -493,7 +488,7 @@ class HomePageController extends Controller
     public function news()
     {
         $news = News::query()
-            ->whereHas('tenant', fn($query) => $query->where('slug', config('services.tenant_slug')))
+            ->whereHas('tenant', fn ($query) => $query->where('slug', config('services.tenant_slug')))
             ->where('status', StatusEnum::Active)
             ->select(['id', 'heading', 'name', 'slug', 'image', 'description', 'created_at'])
             ->orderByDesc('id')
@@ -501,18 +496,18 @@ class HomePageController extends Controller
 
         return successResponse([
             'news' => NewsResource::collection($news),
-            'seoData' => $this->getPageWithSeo('news')
+            'seoData' => $this->getPageWithSeo('news'),
         ]);
     }
 
     public function blog(Request $request)
     {
         $blogs = News::query()
-            ->whereHas('tenant', fn($query) => $query->where('slug', config('services.tenant_slug')))
+            ->whereHas('tenant', fn ($query) => $query->where('slug', config('services.tenant_slug')))
             ->where('status', StatusEnum::Active)
             ->select(['id', 'heading', 'name', 'slug', 'image', 'description', 'created_at'])
             ->orderByDesc('id')
-            ->paginate((int) $request->input('per_page', 12));
+            ->paginate(clampPerPage($request->input('per_page'), 12, 48));
 
         return successResponse([
             'news' => NewsResource::collection($blogs),
@@ -522,13 +517,30 @@ class HomePageController extends Controller
                 'per_page' => $blogs->perPage(),
                 'total' => $blogs->total(),
             ],
-            'seoData' => $this->getPageWithSeo('blog')
+            'seoData' => $this->getPageWithSeo('blog'),
         ]);
+    }
+
+    /**
+     * Join two-word spellings customers type ("i phone") into the one-word
+     * product name ("iphone") so the search engine can match it exactly.
+     */
+    private function normalizeSearchQuery(string $query): string
+    {
+        return trim(preg_replace(
+            [
+                '/\bi\s+(phone|pad|mac|pod)(s?)\b/iu',
+                '/\bair\s+(pods?|tag)\b/iu',
+                '/\bmac\s+book\b/iu',
+            ],
+            ['i$1$2', 'air$1', 'macbook'],
+            $query,
+        ));
     }
 
     public function searchProduct(Request $request)
     {
-        $query = trim($request->input('query', ''));
+        $query = $this->normalizeSearchQuery($request->input('query', ''));
 
         if (strlen($query) < 2) {
             return successResponse(['products' => []]);
@@ -549,13 +561,14 @@ class HomePageController extends Controller
         })
             ->query(function ($builder) {
                 $builder->with([
+                    'category',
                     'offerProduct',
                     'stockVariant' => function ($q) {
                         $q->where('status', '1')
                             ->with('price')
                             ->orderByLowestPrice();
                     },
-                    'brand'
+                    'brand',
                 ])->whereHas('brand', function ($q) {
                     $q->where('status', true);
                 })->withCount('cares');
@@ -567,11 +580,9 @@ class HomePageController extends Controller
         return successResponse(SearchProductResource::collection($result));
     }
 
-
-
     public function searchProductResult(Request $request)
     {
-        $query = trim($request->input('query', ''));
+        $query = $this->normalizeSearchQuery($request->input('query', ''));
 
         if (strlen($query) < 2) {
             return successResponse([
@@ -582,8 +593,7 @@ class HomePageController extends Controller
 
         $products = Product::search($query)
             ->query(
-                fn($q) =>
-                $q->with(['category:id,name,slug', 'offerProduct', 'stockVariant' => function ($q) {
+                fn ($q) => $q->with(['category:id,name,slug', 'offerProduct', 'stockVariant' => function ($q) {
                     $q->where('status', '1')
                         ->with(['price']);
                 }])
@@ -593,7 +603,7 @@ class HomePageController extends Controller
                         $q->where('status', true);
                     })
             )
-            ->paginate(request('per_page', 12));
+            ->paginate(clampPerPage(request('per_page'), 12, 48));
 
         return successResponse(new ShopProductResourceCollection($products));
     }
@@ -601,7 +611,7 @@ class HomePageController extends Controller
     public function reelsVideo()
     {
         $reels = ReelsVideo::query()
-            ->whereHas('product', fn($query) => $query->where('status', ProductStatus::Active->value))
+            ->whereHas('product', fn ($query) => $query->where('status', ProductStatus::Active->value))
             ->with(['product:id,slug,product_name,headline,product_image,short_description,brand_id', 'product.brand', 'product.stockVariant' => function ($q) {
                 $q->where('status', '1')
                     ->with(['price']);
@@ -609,6 +619,7 @@ class HomePageController extends Controller
             ->where('status', StatusEnum::Active)
             ->select(['id', 'product_id', 'video_link'])
             ->get();
+
         return successResponse(ReelsVideoResource::collection($reels));
     }
 

@@ -7,7 +7,8 @@ use App\Enums\StatusEnum;
 use App\Exceptions\GeneralException;
 use App\Http\Controllers\Controller;
 use App\Jobs\Order\OrderConfirmJob;
-use App\Services\Shipping\ShippingChargeService;
+use App\Models\Care\PreOwnedCare;
+use App\Models\Care\ProductCare;
 use App\Models\Contact\Contact;
 use App\Models\Coupon\CustomerCouponLog;
 use App\Models\Coupon\NewCoupon;
@@ -17,10 +18,10 @@ use App\Models\PreOwned\PreOwned;
 use App\Models\Product\Product;
 use App\Models\Product\ProductVariant;
 use App\Services\Bkash\BkashService;
+use App\Services\Shipping\ShippingChargeService;
 use App\Services\SSCommerz\SSLCommerzPaymentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Throwable;
 
@@ -33,99 +34,66 @@ class BuyNowController extends Controller
     {
 
         $rules = [
-            'payment_method'             => ['required', 'in:cod,online,bkash'],
-            'booking_amount_only'        => ['nullable', 'in:0,1'],
-            'email'                      => ['required', 'indisposable', 'email', 'max:100'],
-            'phone'                      => ['required', 'max:13'],
-            'full_name'                  => ['required', 'max:100'],
-            'district_id'                => ['required', 'exists:new_districts,id'],
-            'area_id'                    => ['required', 'exists:areas,id'],
-            'address'                    => ['required', 'max:500'],
-            'note'                       => ['nullable', 'max:500'],
-            'is_agree'                   => ['required', 'in:1'],
-            'carts'                      => ['required', 'array'],
-            'carts.*.product_id'         => ['required', 'exists:products,id'],
+            'payment_method' => ['required', 'in:cod,online,bkash'],
+            'booking_amount_only' => ['nullable', 'in:0,1'],
+            'email' => ['required', 'indisposable', 'email', 'max:100'],
+            'phone' => ['required', 'max:13'],
+            'full_name' => ['required', 'max:100'],
+            'district_id' => ['required', 'exists:new_districts,id'],
+            'area_id' => ['required', 'exists:areas,id'],
+            'address' => ['required', 'max:500'],
+            'note' => ['nullable', 'max:500'],
+            'is_agree' => ['required', 'in:1'],
+            'carts' => ['required', 'array'],
+            'carts.*.product_id' => ['required', 'exists:products,id'],
             'carts.*.product_variant_id' => ['required', 'exists:product_variants,id'],
-            'carts.*.pre_owned_id'       => ['nullable', 'exists:pre_owneds,id'],
-            'carts.*.quantity'           => ['required', 'integer', 'min:1'],
-            'carts.*.gift_id'            => ['nullable', Rule::exists('gift_product_variants', 'id')->whereNull('deleted_at')],
-            'coupon_code'                => ['nullable', 'string'],
+            'carts.*.pre_owned_id' => ['nullable', 'exists:pre_owneds,id'],
+            'carts.*.quantity' => ['required', 'integer', 'min:1'],
+            'carts.*.gift_id' => ['nullable', Rule::exists('gift_product_variants', 'id')->whereNull('deleted_at')],
+            'coupon_code' => ['nullable', 'string'],
         ];
 
         foreach ($request->input('carts', []) as $i => $cart) {
-            $rules["carts.$i.care_id"] = !empty($cart['pre_owned_id'])
+            $rules["carts.$i.care_id"] = ! empty($cart['pre_owned_id'])
                 ? ['nullable', Rule::exists('pre_owned_cares', 'id')->whereNull('deleted_at')]
                 : ['nullable', Rule::exists('product_cares', 'id')->whereNull('deleted_at')];
         }
 
         $request->validate($rules);
 
-
         try {
-            DB::beginTransaction();
+            $order = DB::transaction(function () use ($request) {
+                [$cartItems, $subTotal, $discountTotal, $totalBookingAmount] = $this->processCartItems($request->carts, (bool) $request->booking_amount_only);
 
-            [$cartItems, $subTotal, $discountTotal, $totalBookingAmount] = $this->processCartItems($request->carts, $request->booking_amount_only);
+                $shippingCharge = ShippingChargeService::resolveForArea((int) $request->district_id, (int) $request->area_id);
+                $grandTotal = ($subTotal - $discountTotal) + $shippingCharge;
 
+                $couponCode = null;
+                $couponDiscount = 0;
+                $appliedCoupon = null;
 
-            $shippingCharge = ShippingChargeService::resolveForArea((int) $request->district_id, (int) $request->area_id);
-            $grandTotal = ($subTotal - $discountTotal) + $shippingCharge;
+                if ($request->filled('coupon_code')) {
+                    [$appliedCoupon, $couponCode, $couponDiscount] = $this->resolveCoupon($request->coupon_code, $cartItems, $grandTotal);
+                    $grandTotal = max($grandTotal - $couponDiscount, 0);
+                }
 
-            $couponCode = null;
-            $couponDiscount = 0;
+                $contact = $this->resolveContact($request);
 
-            $appliedCoupon = null;
+                $order = $this->createOrder($contact->id, $request, $totalBookingAmount, $subTotal, $shippingCharge, $grandTotal, $couponCode, $couponDiscount);
 
-            if ($request->filled('coupon_code')) {
-                [$appliedCoupon, $couponCode, $couponDiscount] = $this->resolveCoupon($request->coupon_code, $cartItems, $grandTotal);
-                $grandTotal = max($grandTotal - $couponDiscount, 0);
-            }
+                $this->createOrderItems($order->id, $cartItems);
 
-            $contact = $this->resolveContact($request);
+                if ($appliedCoupon) {
+                    CustomerCouponLog::create([
+                        'new_coupon_id' => $appliedCoupon->id,
+                        'contact_id' => $contact->id,
+                        'used_at' => now(),
+                    ]);
+                }
 
-            $order = $this->createOrder($contact->id, $request, $totalBookingAmount, $subTotal, $shippingCharge, $grandTotal, $couponCode, $couponDiscount);
-
-            $this->createOrderItems($order->id, $cartItems);
-
-            if ($appliedCoupon) {
-                CustomerCouponLog::create([
-                    'new_coupon_id' => $appliedCoupon->id,
-                    'contact_id'    => $contact->id,
-                    'used_at'       => now(),
-                ]);
-            }
-
-            DB::commit();
-
-            if ($request->payment_method === 'online') {
-
-                $amount = $request->booking_amount_only ? $order->total_booking_amount : $order->grand_total;
-                $finalAmount = $amount;
-
-                $ssl = new SSLCommerzPaymentService();
-                return $ssl->initSSLCommerz($order, $finalAmount);
-            }
-
-            if ($request->payment_method == 'bkash') {
-
-
-                $amount = $request->booking_amount_only ? $order->total_booking_amount : $order->grand_total;
-                $finalAmount = $amount;
-
-                return BkashService::make()->createPayment([
-                    'payerReference' => $order->id,
-                    'amount' => $finalAmount,
-                    'merchantInvoiceNumber' => $order->invoice_number,
-                ]);
-            }
-            OrderConfirmJob::dispatch($order);
-
-            return responseMessage(message: 'Congratulations! You have successfully placed your order', data: [
-                'invoice_number' => $order->invoice_number,
-                'grand_total' => $order->grand_total,
-            ]);
+                return $order;
+            });
         } catch (\Exception $e) {
-            DB::rollBack();
-
             throw new GeneralException(
                 app()->isProduction()
                     ? 'Failed to place order. Please try again later.'
@@ -133,6 +101,30 @@ class BuyNowController extends Controller
                 500
             );
         }
+
+        if ($request->payment_method === 'online') {
+            $amount = $request->booking_amount_only ? $order->total_booking_amount : $order->grand_total;
+            $ssl = new SSLCommerzPaymentService;
+
+            return $ssl->initSSLCommerz($order, $amount);
+        }
+
+        if ($request->payment_method == 'bkash') {
+            $amount = $request->booking_amount_only ? $order->total_booking_amount : $order->grand_total;
+
+            return BkashService::make()->createPayment([
+                'payerReference' => $order->id,
+                'amount' => $amount,
+                'merchantInvoiceNumber' => $order->invoice_number,
+            ]);
+        }
+
+        OrderConfirmJob::dispatch($order);
+
+        return responseMessage(message: 'Congratulations! You have successfully placed your order', data: [
+            'invoice_number' => $order->invoice_number,
+            'grand_total' => $order->grand_total,
+        ]);
     }
 
     // -------------------------------------------------------------------------
@@ -155,7 +147,7 @@ class BuyNowController extends Controller
             $usedDevice = null;
 
             // ONLY check preowned if pre_owned_id exists
-            if (isset($cart['pre_owned_id']) && !empty($cart['pre_owned_id'])) {
+            if (isset($cart['pre_owned_id']) && ! empty($cart['pre_owned_id'])) {
                 //  quantity validation for preowned (optional but recommended)
                 if ($quantity > 1) {
                     throw new GeneralException('Pre-owned device quantity must be 1', 400);
@@ -168,7 +160,7 @@ class BuyNowController extends Controller
                     ->lockForUpdate() // prevent race condition
                     ->first();
 
-                if (!$usedDevice) {
+                if (! $usedDevice) {
                     throw new GeneralException('This device is already sold', 400);
                 }
             }
@@ -180,35 +172,35 @@ class BuyNowController extends Controller
                 $regularPrice = (float) $usedDevice->price;
 
                 $preOwnedDiscountPercent = $usedDevice->discount_type === 'percent' ? (float) ($usedDevice->discount_amount ?? 0) : 0;
-                $preOwnedDiscountFixed   = $usedDevice->discount_type === 'fixed'   ? (float) ($usedDevice->discount_amount ?? 0) : 0;
+                $preOwnedDiscountFixed = $usedDevice->discount_type === 'fixed' ? (float) ($usedDevice->discount_amount ?? 0) : 0;
 
                 $preOwnedDiscountAmt = $preOwnedDiscountPercent > 0
                     ? round($regularPrice * $preOwnedDiscountPercent / 100, 2)
                     : $preOwnedDiscountFixed;
 
-                $subTotal           += $regularPrice;
-                $discountTotal      += $preOwnedDiscountAmt;
+                $subTotal += $regularPrice;
+                $discountTotal += $preOwnedDiscountAmt;
                 $totalBookingAmount += $bookingAmount ? ($usedDevice->booking_amount ?? 0) : 0;
 
-                if (!empty($cart['care_id'])) {
-                    $preOwnedCare = \App\Models\Care\PreOwnedCare::with('care')
+                if (! empty($cart['care_id'])) {
+                    $preOwnedCare = PreOwnedCare::with('care')
                         ->find($cart['care_id']);
                     $carePercent = (float) ($preOwnedCare?->care?->value ?? 0);
                     $subTotal += round(($regularPrice * 1) * $carePercent / 100, 2);
                 }
 
                 $cartItems[] = [
-                    'product_id'              => $usedDevice->product_id,
-                    'product_variant_id'      => $usedDevice->product_variant_id,
-                    'pre_owned_id'            => $usedDevice->id,
-                    'product_price'           => $regularPrice,
+                    'product_id' => $usedDevice->product_id,
+                    'product_variant_id' => $usedDevice->product_variant_id,
+                    'pre_owned_id' => $usedDevice->id,
+                    'product_price' => $regularPrice,
                     'gift_product_variant_id' => $cart['gift_id'] ?? null,
-                    'product_care_id'         => null,
-                    'pre_owned_care_id'       => $cart['care_id'] ?? null,
-                    'discount_type'           => $usedDevice->discount_type,
-                    'discount_amount'         => $preOwnedDiscountAmt,
-                    'purchase_point'          => $usedDevice->purchase_point ?? 0,
-                    'quantity'                => 1,
+                    'product_care_id' => null,
+                    'pre_owned_care_id' => $cart['care_id'] ?? null,
+                    'discount_type' => $usedDevice->discount_type,
+                    'discount_amount' => $preOwnedDiscountAmt,
+                    'purchase_point' => $usedDevice->purchase_point ?? 0,
+                    'quantity' => 1,
                 ];
             }
 
@@ -218,7 +210,7 @@ class BuyNowController extends Controller
             else {
                 $product = Product::find($cart['product_id']);
 
-                if (!$product) {
+                if (! $product) {
                     throw new GeneralException('Product not found', 400);
                 }
 
@@ -227,25 +219,15 @@ class BuyNowController extends Controller
                     ->lockForUpdate()
                     ->first();
 
-                if (!$variant) {
+                if (! $variant) {
                     throw new GeneralException('Variant not found', 400);
                 }
 
-                // if (!$variant->stock || $variant->is_prebook) {
-                //     throw new GeneralException('Stock not available', 400);
-                // }
-
-                if (!$variant || (!$variant->stock && !$variant->is_prebook)) {
+                if (! $variant || (! $variant->stock && ! $variant->is_prebook)) {
                     throw new GeneralException('Stock not available', 400);
                 }
 
-
                 $productVariantPrice = $variant->price?->max_retail_price ?? 0;
-
-                // $discount = $this->calculateDiscount($variant->price);
-
-                // $discountAmount = $discount['discount_amount'] ?? 0;
-                // $discountType = $discount['discount_type'] ?? null;
 
                 /**
                  * ------------------------
@@ -264,32 +246,39 @@ class BuyNowController extends Controller
                     ];
                 }
 
-
-                if (!empty($cart['care_id'])) {
-                    $care = \App\Models\Care\ProductCare::with('care')
+                if (! empty($cart['care_id'])) {
+                    $care = ProductCare::with('care')
                         ->find($cart['care_id']);
                     $careValue = $care?->care?->value ?? 0;
                     $careCharge = ($productVariantPrice * $quantity) * ($careValue / 100);
                     $subTotal += $careCharge;
                 }
 
-                $subTotal      += $productVariantPrice  * $quantity;
-                $discountTotal += $offer['discount_amount'] * $quantity;
+                $itemPrice = $productVariantPrice * $quantity;
+                $itemDiscount = 0;
+                if (($offer['discount_type'] ?? null) === 'percent') {
+                    $itemDiscount = round(($itemPrice * (float) $offer['discount_amount']) / 100, 2);
+                } elseif (($offer['discount_type'] ?? null) === 'fixed') {
+                    $itemDiscount = (float) $offer['discount_amount'] * $quantity;
+                }
+
+                $subTotal += $itemPrice;
+                $discountTotal += $itemDiscount;
 
                 $totalBookingAmount += $bookingAmount ? $product->booking_amount * $quantity : 0;
 
                 $cartItems[] = [
-                    'product_id'              => $product->id,
-                    'product_variant_id'      => $variant->id,
-                    'pre_owned_id'            => null,
+                    'product_id' => $product->id,
+                    'product_variant_id' => $variant->id,
+                    'pre_owned_id' => null,
                     'gift_product_variant_id' => $cart['gift_id'] ?? null,
-                    'product_care_id'         => $cart['care_id'] ?? null,
-                    'pre_owned_care_id'       =>  null,
-                    'product_price'           => $productVariantPrice,
-                    'discount_type'           => $offer['discount_type'] ?? null,
-                    'discount_amount'         => $offer['discount_amount'] ?? 0,
-                    'purchase_point'          => $product->purchase_point ? $product->purchase_point * $quantity : 0,
-                    'quantity'                => $quantity,
+                    'product_care_id' => $cart['care_id'] ?? null,
+                    'pre_owned_care_id' => null,
+                    'product_price' => $productVariantPrice,
+                    'discount_type' => $offer['discount_type'] ?? null,
+                    'discount_amount' => $offer['discount_amount'] ?? 0,
+                    'purchase_point' => $product->purchase_point ? $product->purchase_point * $quantity : 0,
+                    'quantity' => $quantity,
                 ];
             }
         }
@@ -307,19 +296,20 @@ class BuyNowController extends Controller
     }
 
     /**
-     * Find existing contact by email or phone, or create a new guest contact.
+     * Find existing contact by email and phone (guests only), or create a new guest contact.
      */
     private function resolveContact(Request $request): Contact
     {
         return Contact::query()
             ->where('email', $request->email)
-            ->orWhere('phone', $request->phone)
+            ->where('phone', $request->phone)
+            ->whereNull('password')
             ->first()
             ?? Contact::query()->create([
                 'name' => $request->full_name,
                 'email' => $request->email,
                 'phone' => $request->phone,
-                'type' => 'consumer'
+                'type' => 'consumer',
             ]);
     }
 
@@ -327,14 +317,14 @@ class BuyNowController extends Controller
      * Create and persist the Order record.
      */
     private function createOrder(
-        int     $contactId,
+        int $contactId,
         Request $request,
-        float   $totalBookingAmount,
-        float   $subTotal,
-        float   $shippingCharge,
-        float   $grandTotal,
+        float $totalBookingAmount,
+        float $subTotal,
+        float $shippingCharge,
+        float $grandTotal,
         ?string $couponCode = null,
-        float   $couponDiscount = 0
+        float $couponDiscount = 0
     ): Order {
         return Order::query()->create([
             'contact_id' => $contactId,
@@ -351,11 +341,10 @@ class BuyNowController extends Controller
             'grand_total' => $grandTotal,
             'due_amount' => $grandTotal,
             'payable_amount' => 0,
-            'invoice_number' => $this->generateInvoiceNumber(),
             'status' => StatusEnum::Pending->value,
             'customer_note' => $request->note,
             'custom_value' => json_encode([
-                'customer_name' => $request->full_name
+                'customer_name' => $request->full_name,
             ]),
         ]);
     }
@@ -377,10 +366,10 @@ class BuyNowController extends Controller
         [, $couponCode, $couponDiscount] = $this->resolveCoupon($request->coupon_code, $cartItems, $grandTotal);
 
         return successResponse([
-            'coupon_code'     => $couponCode,
-            'sub_total'       => $grandTotal,
+            'coupon_code' => $couponCode,
+            'sub_total' => $grandTotal,
             'discount_amount' => $couponDiscount,
-            'grand_total'     => max($grandTotal - $couponDiscount, 0),
+            'grand_total' => max($grandTotal - $couponDiscount, 0),
         ]);
     }
 
@@ -388,13 +377,13 @@ class BuyNowController extends Controller
     {
         $coupon = NewCoupon::where('code', $code)
             ->where('status', true)
-            ->where(fn($q) => $q->whereNull('start_date')->orWhereDate('start_date', '<=', now()))
-            ->where(fn($q) => $q->whereNull('end_date')->orWhereDate('end_date', '>=', now()))
+            ->where(fn ($q) => $q->whereNull('start_date')->orWhereDate('start_date', '<=', now()))
+            ->where(fn ($q) => $q->whereNull('end_date')->orWhereDate('end_date', '>=', now()))
             ->with(['productScopes'])
             ->withCount('usages')
             ->first();
 
-        if (!$coupon) {
+        if (! $coupon) {
             throw new GeneralException('Invalid your coupon', 400);
         }
 
@@ -404,7 +393,7 @@ class BuyNowController extends Controller
 
         if ($coupon->min_purchase_amount && $grandTotal < $coupon->min_purchase_amount) {
             throw new GeneralException(
-                'Minimum purchase amount of ' . $coupon->min_purchase_amount . ' required',
+                'Minimum purchase amount of '.$coupon->min_purchase_amount.' required',
                 400
             );
         }
@@ -424,14 +413,14 @@ class BuyNowController extends Controller
 
     private function getGuestApplicableTotal(array $cartItems, NewCoupon $coupon): float
     {
-        $productIds   = array_unique(array_column($cartItems, 'product_id'));
-        $preOwnedIds  = array_values(array_filter(array_column($cartItems, 'pre_owned_id')));
+        $productIds = array_unique(array_column($cartItems, 'product_id'));
+        $preOwnedIds = array_values(array_filter(array_column($cartItems, 'pre_owned_id')));
 
         if ($coupon->productScopes->isEmpty()) {
             return $this->sumGuestItems($cartItems, $productIds, $preOwnedIds);
         }
 
-        $applicableProductIds  = [];
+        $applicableProductIds = [];
         $applicablePreOwnedIds = [];
 
         $products = Product::with(['brand', 'category'])
@@ -444,15 +433,16 @@ class BuyNowController extends Controller
                 if (in_array($scope->pre_owned_id, $preOwnedIds)) {
                     $applicablePreOwnedIds[] = $scope->pre_owned_id;
                 }
+
                 continue;
             }
 
             $matched = match ($scope->scope_type) {
-                'all'      => $productIds,
-                'product'  => array_filter($productIds, fn($id) => $id == $scope->product_id),
-                'category' => array_filter($productIds, fn($id) => $products[$id]?->category_id == $scope->category_id),
-                'brand'    => array_filter($productIds, fn($id) => $products[$id]?->brand_id == $scope->brand_id),
-                default    => [],
+                'all' => $productIds,
+                'product' => array_filter($productIds, fn ($id) => $id == $scope->product_id),
+                'category' => array_filter($productIds, fn ($id) => $products[$id]?->category_id == $scope->category_id),
+                'brand' => array_filter($productIds, fn ($id) => $products[$id]?->brand_id == $scope->brand_id),
+                default => [],
             };
 
             $applicableProductIds = array_unique(array_merge($applicableProductIds, array_values($matched)));
@@ -470,7 +460,7 @@ class BuyNowController extends Controller
                 return max($item['product_price'] * $item['quantity'], 0);
             }
 
-            if (!$itemPreOwnedId && !in_array($item['product_id'], $productIds)) {
+            if (! $itemPreOwnedId && ! in_array($item['product_id'], $productIds)) {
                 return 0;
             }
 
@@ -495,12 +485,10 @@ class BuyNowController extends Controller
      */
     private function createOrderItems(int $orderId, array $cartItems): void
     {
-        $rows = array_map(fn($item) => array_merge($item, ['order_id' => $orderId]), $cartItems);
+        $rows = array_map(fn ($item) => array_merge($item, ['order_id' => $orderId]), $cartItems);
 
         OrderList::query()->insert($rows);
     }
-
-
 
     /**
      * Generate a unique invoice number.
@@ -508,11 +496,9 @@ class BuyNowController extends Controller
     private function generateInvoiceNumber()
     {
         $maxOrderId = Order::query()->max('id') ?? 0;
-        return 'ORD-' . date('Ymd') . '-' . str_pad($maxOrderId + 1, 6, '0', STR_PAD_LEFT);
+
+        return 'ORD-'.date('Ymd').'-'.str_pad($maxOrderId + 1, 6, '0', STR_PAD_LEFT);
     }
-
-
-
 
     public function success(Request $request)
     {
@@ -524,62 +510,78 @@ class BuyNowController extends Controller
             ->where('transaction_id', $tranId)
             ->first();
 
-        if (!$order) {
-            return redirect()->intended(config('services.front_base_url') . '/404');
+        if (! $order) {
+            return redirect()->intended(config('services.front_base_url').'/404');
         }
 
         if (in_array($order->payment_status, [
             OnlinePaymentStatusEnum::Successful->value,
             OnlinePaymentStatusEnum::PartiallyPaid->value,
         ], true)) {
-            return redirect()->intended(config('services.front_base_url') . '/order/successful?invoice=' . $order->invoice_number);
+            return redirect()->intended(config('services.front_base_url').'/order/successful?invoice='.$order->invoice_number);
         }
 
-        return redirect()->intended(config('services.front_base_url') . '/order/successful?invoice=' . $order->invoice_number);
+        return redirect()->intended(config('services.front_base_url').'/order/successful?invoice='.$order->invoice_number);
     }
-
 
     public function cancel(Request $request)
     {
         $tran_id = $request->input('tran_id');
 
-        $order = Order::query()->where('transaction_id', $tran_id)->first();
+        return DB::transaction(function () use ($tran_id) {
+            $order = Order::query()->where('transaction_id', $tran_id)->lockForUpdate()->first();
 
-        if (!$order) {
-            return redirect()->intended(config('services.front_base_url') . '/order/failed');
-        }
+            if (! $order) {
+                return redirect()->intended(config('services.front_base_url').'/order/failed');
+            }
 
+            if (in_array((int) $order->payment_status, [
+                OnlinePaymentStatusEnum::Successful->value,
+                OnlinePaymentStatusEnum::PartiallyPaid->value,
+            ], true)) {
+                return redirect()->intended(config('services.front_base_url').'/order/successful?invoice='.$order->invoice_number);
+            }
 
-        $order->payable_amount = 0;
-        $order->payment_status = OnlinePaymentStatusEnum::Canceled->value;
-        $order->due_amount = $order->grand_total;
-        $order->additional_value = null;
-        $order->save();
+            $order->payable_amount = 0;
+            $order->payment_status = OnlinePaymentStatusEnum::Canceled->value;
+            $order->due_amount = $order->grand_total;
+            $order->additional_value = null;
+            $order->save();
 
-        if ($order->transaction_id && $order->transaction_id == $tran_id) {
-            return redirect()->intended(config('services.front_base_url') . '/order/canceled?invoice=' . $order->invoice_number);
-        }
+            if ($order->transaction_id && $order->transaction_id == $tran_id) {
+                return redirect()->intended(config('services.front_base_url').'/order/canceled?invoice='.$order->invoice_number);
+            }
 
-        return redirect()->intended(config('services.front_base_url') . '/order/failed');
+            return redirect()->intended(config('services.front_base_url').'/order/failed');
+        });
     }
 
     public function failed(Request $request)
     {
         $tran_id = $request->input('tran_id');
 
-        $order = Order::query()->where('transaction_id', $tran_id)->first();
+        return DB::transaction(function () use ($tran_id) {
+            $order = Order::query()->where('transaction_id', $tran_id)->lockForUpdate()->first();
 
-        if (!$order) {
-            return redirect()->intended(config('services.front_base_url') . '/order/failed');
-        }
+            if (! $order) {
+                return redirect()->intended(config('services.front_base_url').'/order/failed');
+            }
 
-        $order->payable_amount = 0;
-        $order->payment_status = OnlinePaymentStatusEnum::Failed->value;
-        $order->due_amount = $order->grand_total;
-        $order->additional_value = null;
-        $order->save();
+            if (in_array((int) $order->payment_status, [
+                OnlinePaymentStatusEnum::Successful->value,
+                OnlinePaymentStatusEnum::PartiallyPaid->value,
+            ], true)) {
+                return redirect()->intended(config('services.front_base_url').'/order/successful?invoice='.$order->invoice_number);
+            }
 
-        return redirect()->intended(config('services.front_base_url') . '/order/failed');
+            $order->payable_amount = 0;
+            $order->payment_status = OnlinePaymentStatusEnum::Failed->value;
+            $order->due_amount = $order->grand_total;
+            $order->additional_value = null;
+            $order->save();
+
+            return redirect()->intended(config('services.front_base_url').'/order/failed');
+        });
     }
 
     /**

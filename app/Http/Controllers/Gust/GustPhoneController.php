@@ -5,11 +5,11 @@ namespace App\Http\Controllers\Gust;
 use App\Exceptions\GeneralException;
 use App\Http\Controllers\Controller;
 use App\Models\Customer\VerificationCode;
-use Illuminate\Http\Client\ConnectionException;
+use App\Services\Sms\ReveSmsService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
 
 class GustPhoneController extends Controller
 {
@@ -17,14 +17,14 @@ class GustPhoneController extends Controller
      * @throws \Throwable
      * @throws GeneralException
      */
-    public function phoneVerifyRequest(Request $request): \Illuminate\Http\JsonResponse
+    public function phoneVerifyRequest(Request $request, ReveSmsService $smsService): JsonResponse
     {
 
         $request->validate([
             'phone_number' => [
                 'required',
                 'string',
-                'regex:/^(\+?88)?01[0-9]{9}$/'
+                'regex:/^(\+?88)?01[0-9]{9}$/',
             ],
         ]);
 
@@ -45,8 +45,8 @@ class GustPhoneController extends Controller
             $companyName = Config::get('app.name');
             $message = "($companyName) Your {$companyName} OTP is: $otp. Please do not share your OTP with anyone";
             if ($production) {
-                $response = $this->sendSms($request->phone_number, $message);
-                if (!$response['success']) {
+                $response = $smsService->send($request->phone_number, $message);
+                if (! $response['success']) {
                     throw new GeneralException($response['message']);
                 }
             }
@@ -66,7 +66,7 @@ class GustPhoneController extends Controller
     /**
      * @throws GeneralException
      */
-    public function phoneVerify(Request $request): \Illuminate\Http\JsonResponse
+    public function phoneVerify(Request $request): JsonResponse
     {
         $request->validate([
             'phone_number' => ['required', 'string'],
@@ -79,50 +79,12 @@ class GustPhoneController extends Controller
             ->where('expires_at', '>=', now())
             ->first();
 
-
-        if (!$record) {
-            throw new GeneralException("Invalid or expired OTP");
+        if (! $record) {
+            throw new GeneralException('Invalid or expired OTP');
         }
 
         $record->delete();
 
-
         return responseMessage('Phone number updated successfully');
-    }
-
-    /**
-     * @throws ConnectionException
-     */
-    private function sendSms(string $phoneNumber, string $messageContent): array
-    {
-        $apiKey = Config::get('services.reve_sms.api_key');
-        $secret = Config::get('services.reve_sms.secret_key');
-        $sender = Config::get('services.reve_sms.sender_id');
-        $endpoint = Config::get('services.reve_sms.endpoint');
-
-        $response = Http::get($endpoint, [
-            'apikey' => $apiKey,
-            'secretkey' => $secret,
-            'callerID' => $sender,
-            'toUser' => $phoneNumber,
-            'messageContent' => $messageContent
-        ]);
-
-        $data = $response->json();
-
-        if (isset($data['Status']) && $data['Status'] == "0") {
-            return ['success' => true, 'message_id' => $data['Message_ID']];
-        }
-
-        $errorMessage = match ($data['Status'] ?? null) {
-            '109' => 'User not provided/deleted or API key is missing.',
-            '108' => 'Wrong password or not provided.',
-            '114' => 'Content not provided.',
-            '101' => 'Internal server error.',
-            '1' => 'Request failed.',
-            default => 'An unknown error occurred.'
-        };
-
-        return ['success' => false, 'message' => $errorMessage];
     }
 }

@@ -90,7 +90,6 @@ class ConfigureMeiliSearch extends Command
             // =====================
             // ENGLISH — Pronouns
             // =====================
-            'i',
             'me',
             'we',
             'us',

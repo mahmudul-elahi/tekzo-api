@@ -38,8 +38,8 @@ class SellDeviceRequestController extends Controller
             ->with(self::RELATIONS)
             ->where('contact_id', auth()->guard('customer')->id())
             ->orderByDesc('id')
-            ->paginate(request('per_page', 10))
-            ->through(fn($r) => SellDeviceRequestResource::make($r)->resolve());
+            ->paginate(clampPerPage(request('per_page'), 10, 48))
+            ->through(fn ($r) => SellDeviceRequestResource::make($r)->resolve());
 
         return successResponse($requests);
     }
@@ -63,19 +63,20 @@ class SellDeviceRequestController extends Controller
     public function uploadImage(Request $request)
     {
         $request->validate([
-            'file' => ['required', 'file'],
+            'file' => ['required', 'file', 'max:2048'],
             'identifier' => ['required', 'string', 'max:100', 'regex:/^[a-zA-Z0-9_-]+$/'],
             'filename' => ['required', 'string'],
             'chunk_index' => ['required', 'integer', 'min:0'],
-            'total_chunks' => ['required', 'integer', 'min:1'],
+            'total_chunks' => ['required', 'integer', 'min:1', 'max:50'],
         ]);
 
+        $customerId = auth()->guard('customer')->id();
         $identifier = $request->input('identifier');
         $chunkIndex = (int) $request->input('chunk_index');
         $totalChunks = (int) $request->input('total_chunks');
 
         $chunkDisk = Storage::disk(self::CHUNK_DISK);
-        $chunkDir = self::CHUNK_FOLDER . '/' . $identifier;
+        $chunkDir = self::CHUNK_FOLDER.'/'.$customerId.'/'.$identifier;
 
         $request->file('file')->storeAs($chunkDir, "chunk_{$chunkIndex}", self::CHUNK_DISK);
 
@@ -89,7 +90,7 @@ class SellDeviceRequestController extends Controller
 
         $extension = strtolower(pathinfo($request->input('filename'), PATHINFO_EXTENSION));
 
-        if (!in_array($extension, self::ALLOWED_IMAGE_EXTENSIONS, true)) {
+        if (! in_array($extension, self::ALLOWED_IMAGE_EXTENSIONS, true)) {
             $chunkDisk->deleteDirectory($chunkDir);
             throw new GeneralException('Only jpg, jpeg, png and webp images are allowed', 422);
         }
@@ -102,12 +103,31 @@ class SellDeviceRequestController extends Controller
             throw new GeneralException('Image size must not exceed 10MB', 422);
         }
 
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $detectedMime = finfo_file($finfo, $mergedPath);
+        finfo_close($finfo);
+
+        $mimeToExt = [
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+            'image/webp' => 'webp',
+            'image/avif' => 'avif',
+        ];
+
+        if (! isset($mimeToExt[$detectedMime])) {
+            unlink($mergedPath);
+            $chunkDisk->deleteDirectory($chunkDir);
+            throw new GeneralException('Only jpg, jpeg, png and webp images are allowed', 422);
+        }
+
+        $extension = $mimeToExt[$detectedMime];
+
         // No visibility flag here — the bucket has ACLs disabled (bucket
         // owner enforced), so requesting 'public' ACL makes S3 reject the
         // write with AccessControlListNotSupported. Public access to these
         // objects is handled by the bucket/CloudFront policy instead.
         $path = Storage::disk(config('filesystems.default'))
-            ->putFileAs(self::IMAGE_FOLDER, new File($mergedPath), Str::uuid() . '.' . $extension);
+            ->putFileAs(self::IMAGE_FOLDER, new File($mergedPath), Str::uuid().'.'.$extension);
 
         unlink($mergedPath);
         $chunkDisk->deleteDirectory($chunkDir);
@@ -120,13 +140,13 @@ class SellDeviceRequestController extends Controller
      */
     private function mergeChunks(FilesystemAdapter $chunkDisk, string $chunkDir, int $totalChunks): string
     {
-        $mergedPath = $chunkDisk->path($chunkDir . '/merged');
+        $mergedPath = $chunkDisk->path($chunkDir.'/merged');
         $out = fopen($mergedPath, 'wb');
 
         for ($i = 0; $i < $totalChunks; $i++) {
             $chunkPath = $chunkDisk->path("{$chunkDir}/chunk_{$i}");
 
-            if (!file_exists($chunkPath)) {
+            if (! file_exists($chunkPath)) {
                 fclose($out);
                 @unlink($mergedPath);
                 $chunkDisk->deleteDirectory($chunkDir);
@@ -182,7 +202,7 @@ class SellDeviceRequestController extends Controller
                 collect($validated)->except(['images', 'remove_image_ids', 'features'])->toArray()
             );
 
-            if (!empty($validated['remove_image_ids'])) {
+            if (! empty($validated['remove_image_ids'])) {
                 $this->removeImages($sell_device_request, $validated['remove_image_ids']);
             }
 
@@ -223,11 +243,11 @@ class SellDeviceRequestController extends Controller
         foreach ($images as $image) {
             $path = $image['path'];
 
-            if (!str_starts_with($path, self::IMAGE_FOLDER . '/') || !$disk->exists($path)) {
+            if (! str_starts_with($path, self::IMAGE_FOLDER.'/') || ! $disk->exists($path)) {
                 throw new GeneralException('Invalid or expired image, please re-upload it', 422);
             }
 
-            $isPrimary = !$hasExistingPrimary && !empty($image['is_primary']);
+            $isPrimary = ! $hasExistingPrimary && ! empty($image['is_primary']);
 
             $sellDeviceRequest->images()->create([
                 'image' => $path,
@@ -237,7 +257,7 @@ class SellDeviceRequestController extends Controller
             $hasExistingPrimary = $hasExistingPrimary || $isPrimary;
         }
 
-        if (!$hasExistingPrimary) {
+        if (! $hasExistingPrimary) {
             $sellDeviceRequest->images()->oldest('id')->first()?->update(['is_primary' => true]);
         }
     }

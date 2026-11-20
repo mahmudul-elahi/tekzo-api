@@ -4,7 +4,6 @@ namespace App\Mail\Customer;
 
 use App\Models\Order\Order;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
@@ -18,8 +17,11 @@ class OrderConfirmMail extends Mailable
     /**
      * Create a new message instance.
      */
-    public function __construct(protected Order $order, protected string $pdfPath)
-    {
+    public function __construct(
+        protected Order $order,
+        protected ?string $pdfPath = null,
+        protected ?string $pdfData = null,
+    ) {
         //
     }
 
@@ -29,7 +31,7 @@ class OrderConfirmMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your Order Invoice #' . $this->order->invoice_number,
+            subject: 'Your Order Invoice #'.$this->order->invoice_number,
         );
     }
 
@@ -53,10 +55,23 @@ class OrderConfirmMail extends Mailable
      */
     public function attachments(): array
     {
-        return [
-            Attachment::fromPath($this->pdfPath)
-                ->as('invoice_' . $this->order->invoice_number . '.pdf')
-                ->withMime('application/pdf'),
-        ];
+        $fileName = 'invoice_'.$this->order->invoice_number.'.pdf';
+
+        if ($this->pdfData !== null) {
+            return [
+                Attachment::fromData(fn () => $this->pdfData, $fileName)
+                    ->withMime('application/pdf'),
+            ];
+        }
+
+        if ($this->pdfPath !== null && file_exists($this->pdfPath)) {
+            return [
+                Attachment::fromPath($this->pdfPath)
+                    ->as($fileName)
+                    ->withMime('application/pdf'),
+            ];
+        }
+
+        return [];
     }
 }

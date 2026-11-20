@@ -8,8 +8,6 @@ use App\Http\Resources\Offer\OfferResourceCollection;
 use App\Models\Offer\Offer;
 use App\Models\Product\Product;
 use App\Support\PriceCalculator;
-use Carbon\Carbon;
-use Illuminate\Http\Request;
 
 class OfferController extends Controller
 {
@@ -18,12 +16,10 @@ class OfferController extends Controller
         $offers = Offer::query()
             ->orderByDesc('id')
             ->where('is_active', 1)
-            ->paginate(request('per_page', 12));
+            ->paginate(clampPerPage(request('per_page'), 12, 48));
 
         return successResponse(new OfferResourceCollection($offers));
     }
-
-
 
     public function offerProduct($slug)
     {
@@ -33,7 +29,7 @@ class OfferController extends Controller
             ->select('id', 'slug', 'title', 'description', 'banner', 'start_at', 'end_at')
             ->first();
 
-        if (!$offer) {
+        if (! $offer) {
             return responseMessage('Offer not found', 404);
         }
 
@@ -50,13 +46,12 @@ class OfferController extends Controller
                 },
                 'offerProduct' => function ($query) use ($offer) {
                     $query->where('offer_id', $offer->id);
-                }
+                },
             ])
             ->withAvg('reviews', 'rating')
             ->withCount('cares')
             ->where('status', ProductStatus::Active->value)
-            ->paginate(request('per_page', 12));
-
+            ->paginate(clampPerPage(request('per_page'), 12, 48));
 
         // transform data
         $products->getCollection()->transform(function ($product) use ($offer) {
@@ -66,21 +61,21 @@ class OfferController extends Controller
                 ['percent' => $discountPercent, 'fixed' => $discountFixed] = PriceCalculator::resolveProductDiscount($product->offerProduct);
             } else {
                 $discountPercent = $product->stockVariant?->price?->discount_percent ?? 0;
-                $discountFixed   = $product->stockVariant?->price?->discount_fixed ?? 0;
+                $discountFixed = $product->stockVariant?->price?->discount_fixed ?? 0;
             }
 
             return [
-                'id'                 => $product->id,
-                'offer_id'           => $offer->id,
-                'product_id'         => $product->id,
+                'id' => $product->id,
+                'offer_id' => $offer->id,
+                'product_id' => $product->id,
                 'product_variant_id' => $product->stockVariant?->id,
-                'slug'               => $product->slug,
-                'product_name'       => $product->product_name,
-                'product_image'      => $product->product_image,
-                'regular_price'      => $maxRetailPrice,
-                'final_price'        => PriceCalculator::finalPrice($maxRetailPrice, $discountPercent, $discountFixed),
-                'discount_amount'    => PriceCalculator::discountAmount($maxRetailPrice, $discountPercent, $discountFixed),
-                'discount_label'     => PriceCalculator::discountLabel($discountPercent, $discountFixed),
+                'slug' => $product->slug,
+                'product_name' => $product->product_name,
+                'product_image' => $product->product_image,
+                'regular_price' => $maxRetailPrice,
+                'final_price' => PriceCalculator::finalPrice($maxRetailPrice, $discountPercent, $discountFixed),
+                'discount_amount' => PriceCalculator::discountAmount($maxRetailPrice, $discountPercent, $discountFixed),
+                'discount_label' => PriceCalculator::discountLabel($discountPercent, $discountFixed),
                 'is_stock' => $product->stockVariant?->stock,
                 'is_prebook' => $product->stockVariant?->is_prebook,
                 'purchase_point' => $product->purchase_point,
@@ -92,7 +87,7 @@ class OfferController extends Controller
                 'is_care' => $product->cares_count > 0 ? true : false,
                 'is_offer' => $product->offerProduct !== null,
                 'brand' => $product?->brand,
-                'avg_rating'      => floatval($product->reviews_avg_rating),
+                'avg_rating' => floatval($product->reviews_avg_rating),
 
             ];
         });

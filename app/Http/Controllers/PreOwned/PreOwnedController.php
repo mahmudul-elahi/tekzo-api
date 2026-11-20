@@ -57,7 +57,7 @@ class PreOwnedController extends Controller
                 });
             })
             ->when($search, function ($query) use ($request) {
-                $query->whereRaw('LOWER(product_name) LIKE ?', ['%' . strtolower($request->search) . '%']);
+                $query->whereRaw('LOWER(product_name) LIKE ?', ['%'.strtolower($request->search).'%']);
             })
             ->select(['id', 'product_name', 'slug', 'headline', 'category_id', 'brand_id'])
             ->whereHas('preOwned', $preOwnedConstraint)
@@ -65,14 +65,14 @@ class PreOwnedController extends Controller
             ->withMin(['preOwned' => $preOwnedConstraint], 'price')
             ->withMax(['preOwned' => $preOwnedConstraint], 'price')
             ->with(['preOwned' => $preOwnedConstraint, 'category:id,name,slug', 'brand:id,name,slug'])
-            ->when($sortBy === 'price_asc', fn($query) => $query->orderBy('pre_owned_min_price', 'asc')->orderBy('id', 'asc'))
-            ->when($sortBy === 'price_desc', fn($query) => $query->orderBy('pre_owned_min_price', 'desc')->orderBy('id', 'asc'))
-            ->when($sortBy === 'newest', fn($query) => $query->orderByDesc('id'))
-            ->when(!$sortBy, function ($query) {
+            ->when($sortBy === 'price_asc', fn ($query) => $query->orderBy('pre_owned_min_price', 'asc')->orderBy('id', 'asc'))
+            ->when($sortBy === 'price_desc', fn ($query) => $query->orderBy('pre_owned_min_price', 'desc')->orderBy('id', 'asc'))
+            ->when($sortBy === 'newest', fn ($query) => $query->orderByDesc('id'))
+            ->when(! $sortBy, function ($query) {
                 $query->orderByRaw("CASE WHEN (SELECT slug FROM brands WHERE brands.id = products.brand_id) = 'apple' THEN 0 ELSE 1 END ASC")
                     ->orderByDesc('id');
             })
-            ->paginate(request('per_page', 12));
+            ->paginate(clampPerPage(request('per_page'), 12, 48));
 
         return successResponse(PreOwnedResourceCollection::make($preOwneds));
     }
@@ -89,7 +89,7 @@ class PreOwnedController extends Controller
             }])
             ->first();
 
-        if (!$preOwnedSingle) {
+        if (! $preOwnedSingle) {
             return responseMessage(message: 'Product not found', code: 404);
         }
 
@@ -98,15 +98,14 @@ class PreOwnedController extends Controller
                 $q->where('slug', $slug);
             });
 
-
         // Apply Filter
         (new UsedProductFilter([
             'condition' => request('condition'),
-            'storage'   => request('storage'),
-            'stock'     => request('stock'),
+            'storage' => request('storage'),
+            'stock' => request('stock'),
             'min_price' => request('min_price'),
             'max_price' => request('max_price'),
-            'sort_by'   => request('sort_by'),
+            'sort_by' => request('sort_by'),
         ]))->apply($query);
 
         $paginated = $query
@@ -121,11 +120,11 @@ class PreOwnedController extends Controller
                 'images',
                 'attributes' => function ($q) {
                     $q->with('attribute', 'attributeValue');
-                }
+                },
             ])
-            ->paginate((int) $request->input('per_page', 12));
+            ->paginate(clampPerPage($request->input('per_page'), 12, 48));
 
-        $preOwneds = $paginated->map(fn($preOwned) => $this->formatPreOwnedCard($preOwned));
+        $preOwneds = $paginated->map(fn ($preOwned) => $this->formatPreOwnedCard($preOwned));
 
         return successResponse([
             'preOwneds' => $preOwneds,
@@ -148,7 +147,7 @@ class PreOwnedController extends Controller
     {
         $brands = Brand::query()
             ->select(['id', 'name', 'slug'])
-            ->whereHas('products.preOwned', fn($q) => $q->where('is_sold', '!=', true))
+            ->whereHas('products.preOwned', fn ($q) => $q->where('is_sold', '!=', true))
             ->orderBy('name')
             ->get();
 
@@ -168,14 +167,14 @@ class PreOwnedController extends Controller
 
         $products = Product::query()
             ->select(['id', 'product_name', 'slug', 'brand_id'])
-            ->whereHas('preOwned', fn($q) => $q->where('is_sold', '!=', true))
+            ->whereHas('preOwned', fn ($q) => $q->where('is_sold', '!=', true))
             ->when(count($brandSlugs) > 0, function ($query) use ($brandSlugs) {
-                $query->whereHas('brand', fn($q) => $q->whereIn('slug', $brandSlugs));
+                $query->whereHas('brand', fn ($q) => $q->whereIn('slug', $brandSlugs));
             })
-            ->withCount(['preOwned as available_pre_owned_count' => fn($q) => $q->where('is_sold', '!=', true)])
+            ->withCount(['preOwned as available_pre_owned_count' => fn ($q) => $q->where('is_sold', '!=', true)])
             ->orderByRaw("CASE WHEN (SELECT slug FROM brands WHERE brands.id = products.brand_id) = 'apple' THEN 0 ELSE 1 END ASC")
             ->orderByDesc('id')
-            ->paginate((int) $request->input('per_page', 6));
+            ->paginate(clampPerPage($request->input('per_page'), 6, 48));
 
         // A single query for all units across this page's products, grouped in memory
         // per product — eager-loading a relation with a ->limit() only limits the whole
@@ -202,7 +201,7 @@ class PreOwnedController extends Controller
                     'slug' => $product->slug,
                 ],
                 'total_available' => $product->available_pre_owned_count,
-                'preOwneds' => $units->map(fn($preOwned) => $this->formatPreOwnedCard($preOwned))->values(),
+                'preOwneds' => $units->map(fn ($preOwned) => $this->formatPreOwnedCard($preOwned))->values(),
             ];
         })->values();
 
@@ -225,11 +224,11 @@ class PreOwnedController extends Controller
     private function pageSeoData(string $pageSlug): ?array
     {
         $page = Page::query()
-            ->whereHas('tenant', fn($query) => $query->where('slug', config('services.tenant_slug')))
+            ->whereHas('tenant', fn ($query) => $query->where('slug', config('services.tenant_slug')))
             ->where('slug', $pageSlug)
             ->first();
 
-        if (!$page) {
+        if (! $page) {
             return null;
         }
 
@@ -239,7 +238,7 @@ class PreOwnedController extends Controller
             ->where('model_type', 'App\Models\Pos\Page\Page')
             ->first();
 
-        if (!$seo) {
+        if (! $seo) {
             return null;
         }
 
@@ -259,8 +258,8 @@ class PreOwnedController extends Controller
     private function formatPreOwnedCard(PreOwned $preOwned): array
     {
         $discountPercent = $preOwned->discount_type === 'percent' ? (float) ($preOwned->discount_amount ?? 0) : 0;
-        $discountFixed   = $preOwned->discount_type === 'fixed'   ? (float) ($preOwned->discount_amount ?? 0) : 0;
-        $regularPrice    = (float) ($preOwned->price ?? 0);
+        $discountFixed = $preOwned->discount_type === 'fixed' ? (float) ($preOwned->discount_amount ?? 0) : 0;
+        $regularPrice = (float) ($preOwned->price ?? 0);
 
         return [
             'id' => $preOwned->id,
@@ -274,15 +273,15 @@ class PreOwnedController extends Controller
             'description' => $preOwned->description,
             'short_description' => $preOwned->product?->short_description,
             'regular_price' => $regularPrice,
-            'final_price'     => PriceCalculator::finalPrice($regularPrice, $discountPercent, $discountFixed),
+            'final_price' => PriceCalculator::finalPrice($regularPrice, $discountPercent, $discountFixed),
             'discount_amount' => PriceCalculator::discountAmount($regularPrice, $discountPercent, $discountFixed),
-            'discount_label'  => PriceCalculator::discountLabel($discountPercent, $discountFixed),
+            'discount_label' => PriceCalculator::discountLabel($discountPercent, $discountFixed),
             'is_box' => $preOwned->box,
             'is_stock' => $preOwned->is_sold ? false : true,
             'charging_time' => $preOwned->charging_time,
             'official_service_warranty' => $preOwned->official_service_warranty,
 
-            'attributes' => $preOwned->attributes?->map(fn($attribute) => [
+            'attributes' => $preOwned->attributes?->map(fn ($attribute) => [
                 'name' => $attribute->attribute?->name,
                 'value' => $attribute->attributeValue?->value,
             ]) ?? [],
@@ -298,12 +297,12 @@ class PreOwnedController extends Controller
 
         $base = [
             'title' => $preOwnedSingle->product->product_name,
-            'canonical' => config('services.front_base_url') . '/used-device/' . $preOwnedSingle->product->slug,
+            'canonical' => config('services.front_base_url').'/used-device/'.$preOwnedSingle->product->slug,
             'ogImage' => $preOwnedSingle?->thumbnail_image ?? null,
             'siteName' => config('app.name'),
         ];
 
-        if (!$seo) {
+        if (! $seo) {
             return array_merge($base, [
                 'description' => '',
                 'tags' => '',
@@ -312,31 +311,30 @@ class PreOwnedController extends Controller
         }
 
         return array_merge($base, [
-            'title'       => $seo->title ?? $preOwnedSingle->product->product_name,
+            'title' => $seo->title ?? $preOwnedSingle->product->product_name,
             'description' => $seo->description,
-            'tags'        => $seo->tags,
+            'tags' => $seo->tags,
             'long_description' => $seo->long_description,
         ]);
     }
 
-
     private function formattedSpecifications(object $specificationItems): array
     {
-        if (!$specificationItems) {
+        if (! $specificationItems) {
             return [];
         }
 
         return $specificationItems
-            ->groupBy(fn($item) => optional($item->parent)->id)
+            ->groupBy(fn ($item) => optional($item->parent)->id)
             ->map(function ($items) {
                 $group = $items->first()->parent;
 
                 return [
-                    'id'           => $group?->id,
-                    'name'         => $group?->name,
-                    'group_values' => $items->map(fn($item) => [
-                        'id'      => $item->id,
-                        'name'    => $item->sub?->name,
+                    'id' => $group?->id,
+                    'name' => $group?->name,
+                    'group_values' => $items->map(fn ($item) => [
+                        'id' => $item->id,
+                        'name' => $item->sub?->name,
                         'details' => $item->details,
                     ])->values(),
                 ];

@@ -12,9 +12,8 @@ use App\Models\Gift\GiftProduct;
 use App\Models\Offer\OfferProduct;
 use App\Models\PreOwned\PreOwned;
 use App\Models\PreOwned\PreOwnedProductSeo;
-use App\Models\Product\ProductVideo;
-use App\Models\Product\ProductView;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -24,7 +23,7 @@ use Laravel\Scout\Searchable;
 
 class Product extends Model
 {
-    use SoftDeletes, Searchable;
+    use Searchable, SoftDeletes;
 
     public $casts = [
         'has_official_warranty' => 'boolean',
@@ -43,6 +42,17 @@ class Product extends Model
         });
     }
 
+    /**
+     * Eager load the relations used by toSearchableArray() before indexing.
+     *
+     * @param  Collection<int, Product>  $models
+     * @return Collection<int, Product>
+     */
+    public function makeSearchableUsing(Collection $models): Collection
+    {
+        return $models->loadMissing(['category:id,name', 'brand:id,name']);
+    }
+
     public function toSearchableArray(): array
     {
         return [
@@ -55,7 +65,7 @@ class Product extends Model
             'category' => optional($this->category)->name,
             'brand' => optional($this->brand)->name,
             'status' => $this->status,
-            'name_words'        => implode(' ', $this->tokenize($this->product_name ?? '')),
+            'name_words' => implode(' ', $this->tokenize($this->product_name ?? '')),
         ];
     }
 
@@ -80,10 +90,8 @@ class Product extends Model
     /*************  ✨ Windsurf Command ⭐  *************/
     /**
      * Get the product variants.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-    public function variants(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function variants(): HasMany
     {
         return $this->hasMany(ProductVariant::class, 'product_id', 'id');
     }
@@ -92,7 +100,6 @@ class Product extends Model
     {
         return $this->hasMany(ProductAttribute::class, 'product_id', 'id');
     }
-
 
     public function stockVariant()
     {
@@ -117,9 +124,8 @@ class Product extends Model
         $description = LongDescription::query()
             ->where('model_id', $this->id)
             ->where('model_type', 'App\Models\Pos\Product\Product')
-            ->whereHas('tenant', fn($query) => $query->where('slug', config('services.tenant_slug')))
+            ->whereHas('tenant', fn ($query) => $query->where('slug', config('services.tenant_slug')))
             ->first();
-
 
         return $description->description ?? null;
     }

@@ -17,7 +17,6 @@ class RefurbishedController extends Controller
     {
         $isPriceSort = in_array($request->input('sort_by'), ['price_asc', 'price_desc']);
 
-
         $query = Product::query()
             ->select('id', 'slug', 'product_name', 'headline', 'product_image', 'category_id', 'has_official_warranty', 'is_chinese', 'is_unofficial', 'is_refurbished', 'purchase_point', 'booking_amount')
             ->where('status', ProductStatus::Active->value)
@@ -35,25 +34,25 @@ class RefurbishedController extends Controller
                 'has_stock' => ProductVariant::selectRaw('MAX(stock)')
                     ->whereColumn('product_id', 'products.id')
                     ->where('status', '1')
-                    ->limit(1)
+                    ->limit(1),
             ])
             ->whereIn('products.status', [ProductStatus::Active->value, ProductStatus::Comming->value])
             ->orderByRaw('CASE WHEN has_stock > 0 THEN 0 ELSE 1 END ASC')
             // A price sort's own ordering has to be the next criterion right after
             // stock — numbering/id here would otherwise decide almost every row before
             // price ever got a chance to (orderBy calls are additive, not replacing).
-            ->when(!$isPriceSort, function ($query) {
+            ->when(! $isPriceSort, function ($query) {
                 $query->orderBy('numbering', 'asc')->orderByDesc('id');
             })
             ->withCount(['giftProduct', 'cares'])
             ->withAvg('reviews', 'rating');
 
         (new ProductFilter([
-            'brand'     => $request->input('brand'),
-            'stock'     => $request->input('stock'),
+            'brand' => $request->input('brand'),
+            'stock' => $request->input('stock'),
             'min_price' => $request->input('min_price'),
             'max_price' => $request->input('max_price'),
-            'sort_by'   => $request->input('sort_by'),
+            'sort_by' => $request->input('sort_by'),
         ]))->apply($query);
 
         if ($isPriceSort) {
@@ -63,7 +62,7 @@ class RefurbishedController extends Controller
             $query->orderBy('products.id', 'asc');
         }
 
-        $products = $query->paginate(request()->input('per_page', 12));
+        $products = $query->paginate(clampPerPage(request()->input('per_page'), 12, 48));
 
         return successResponse(new ShopProductResourceCollection($products));
     }

@@ -12,14 +12,15 @@ use App\Services\Bkash\BkashService;
 use App\Services\SSCommerz\SSLCommerzPaymentService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class OrderController extends Controller
 {
-    public function index(Request $request): \Illuminate\Pagination\LengthAwarePaginator
+    public function index(Request $request): LengthAwarePaginator
     {
         $query = Order::query()
             ->withSum('orderLists', 'quantity')
-            ->when($request->search, fn($q) => $q->where('invoice_number', 'like', "%{$request->search}%"))
+            ->when($request->search, fn ($q) => $q->where('invoice_number', 'like', "%{$request->search}%"))
             ->where('contact_id', $this->getCustomer())
             ->orderByDesc('id');
 
@@ -27,9 +28,10 @@ class OrderController extends Controller
             $query->where('status', $request->status);
         }
 
-        return $query->paginate($request->get('per_page', 10))
+        return $query->paginate(clampPerPage($request->get('per_page'), 10, 48))
             ->through(function ($order) {
                 $statusEnum = StatusEnum::from($order->status);
+
                 return [
                     'id' => $order->id,
                     'invoice_number' => $order->invoice_number,
@@ -70,13 +72,13 @@ class OrderController extends Controller
         }
 
         // Centralized status mapping
-        $statusText = match ((int)$row->payment_status) {
-            OnlinePaymentStatusEnum::Initiated->value     => 'Initiated',
-            OnlinePaymentStatusEnum::Processing->value    => 'Processing',
-            OnlinePaymentStatusEnum::Successful->value    => 'Successful',
-            OnlinePaymentStatusEnum::Failed->value        => 'Failed',
-            OnlinePaymentStatusEnum::Canceled->value      => 'Cancelled',
-            OnlinePaymentStatusEnum::Unsuccessful->value  => 'Unsuccessful',
+        $statusText = match ((int) $row->payment_status) {
+            OnlinePaymentStatusEnum::Initiated->value => 'Initiated',
+            OnlinePaymentStatusEnum::Processing->value => 'Processing',
+            OnlinePaymentStatusEnum::Successful->value => 'Successful',
+            OnlinePaymentStatusEnum::Failed->value => 'Failed',
+            OnlinePaymentStatusEnum::Canceled->value => 'Cancelled',
+            OnlinePaymentStatusEnum::Unsuccessful->value => 'Unsuccessful',
             OnlinePaymentStatusEnum::PartiallyPaid->value => 'Partially Paid',
             default => 'Pending',
         };
@@ -96,6 +98,7 @@ class OrderController extends Controller
             ->get()
             ->map(function ($order) {
                 $statusEnum = StatusEnum::from($order->status);
+
                 return [
                     ...$order->toArray(),
                     'payment_status' => $this->formatPaymentStatus($order),
@@ -116,7 +119,7 @@ class OrderController extends Controller
             ->where('id', $id)
             ->first();
 
-        if (!$order) {
+        if (! $order) {
             return responseMessage('Order not found', 404);
         }
 
@@ -135,13 +138,12 @@ class OrderController extends Controller
                 'name' => $statusEnum->name,
                 'color' => $statusEnum->color(),
             ],
-            'date' => \Carbon\Carbon::parse($order->updated_at)->format('Y-m-d'),
-            'time' => \Carbon\Carbon::parse($order->updated_at)->format('h:i A'),
+            'date' => Carbon::parse($order->updated_at)->format('Y-m-d'),
+            'time' => Carbon::parse($order->updated_at)->format('h:i A'),
             'createdAt' => $order->created_at,
-            'updatedAt' =>  $order->updated_at
+            'updatedAt' => $order->updated_at,
         ]);
     }
-
 
     public function statistics()
     {
@@ -170,14 +172,13 @@ class OrderController extends Controller
             ->with(['contact', 'area', 'district'])
             ->first();
 
-
-        if (!$order) {
+        if (! $order) {
             return responseMessage('Order not found', 404);
         }
 
         $request->validate([
             'payment_method' => ['required', 'in:online,bkash'],
-            'amount' => ['required', 'numeric', 'min:1', 'max:' . $order->due_amount],
+            'amount' => ['required', 'numeric', 'min:1', 'max:'.$order->due_amount],
         ]);
 
         if ($order->payment_status == OnlinePaymentStatusEnum::Successful->value) {
@@ -188,22 +189,21 @@ class OrderController extends Controller
             return responseMessage('No due amount remaining for this order.', 400);
         }
 
-
         $amount = (float) $request->amount;
 
         if ($request->payment_method === 'online') {
-            $order->total_booking_amount = $amount;
-            $order->save();
-            $ssl = new SSLCommerzPaymentService();
+            $ssl = new SSLCommerzPaymentService;
+
             return response()->json($ssl->initSSLCommerz($order, $amount));
         }
 
         if ($request->payment_method === 'bkash') {
             $result = BkashService::make()->createPayment([
-                'payerReference'        => (string) $order->id,
-                'amount'                => $amount,
+                'payerReference' => (string) $order->id,
+                'amount' => $amount,
                 'merchantInvoiceNumber' => $order->invoice_number,
             ]);
+
             return response()->json($result);
         }
 
@@ -217,7 +217,7 @@ class OrderController extends Controller
             ->where('id', $orderId)
             ->first();
 
-        if (!$order) {
+        if (! $order) {
             return responseMessage('Order not found', 404);
         }
 
@@ -225,22 +225,22 @@ class OrderController extends Controller
             ->where('order_id', $orderId)
             ->orderByDesc('id')
             ->get()
-            ->map(fn($h) => [
-                'id'             => $h->id,
+            ->map(fn ($h) => [
+                'id' => $h->id,
                 'payment_method' => $h->payment_method,
-                'amount'         => $h->amount,
+                'amount' => $h->amount,
                 'transaction_id' => $h->transaction_id,
-                'status'         => $h->status,
-                'created_at'     => $h->created_at,
+                'status' => $h->status,
+                'created_at' => $h->created_at,
             ]);
 
         return successResponse([
-            'order_id'       => $order->id,
+            'order_id' => $order->id,
             'invoice_number' => $order->invoice_number,
-            'grand_total'    => $order->grand_total,
+            'grand_total' => $order->grand_total,
             'payable_amount' => $order->payable_amount,
-            'due_amount'     => $order->due_amount,
-            'histories'      => $histories,
+            'due_amount' => $order->due_amount,
+            'histories' => $histories,
         ]);
     }
 

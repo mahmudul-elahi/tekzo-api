@@ -8,19 +8,19 @@ use App\Http\Requests\Customer\Profile\ProfileRequest;
 use App\Http\Resources\Customer\Profile\ProfileResource;
 use App\Mail\Customer\EmailVerifyRequestMail;
 use App\Models\Customer\VerificationCode;
+use App\Services\Sms\ReveSmsService;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class ProfileController extends Controller
 {
-
-
     public function index()
     {
         $customer = $this->authCustomer()->load(['elite', 'eliteHistories.elite']);
@@ -32,7 +32,7 @@ class ProfileController extends Controller
      * @throws Throwable
      * @throws GeneralException
      */
-    public function update(ProfileRequest $request): \Illuminate\Http\JsonResponse
+    public function update(ProfileRequest $request): JsonResponse
     {
         $customer = $this->authCustomer();
 
@@ -58,6 +58,7 @@ class ProfileController extends Controller
             }
 
             DB::commit();
+
             return successResponse('Profile updated successfully');
         } catch (\Exception $e) {
             DB::rollBack();
@@ -72,14 +73,13 @@ class ProfileController extends Controller
      * @throws Throwable
      * @throws GeneralException
      */
-    public function emailVerifyRequest(Request $request): \Illuminate\Http\JsonResponse
+    public function emailVerifyRequest(Request $request): JsonResponse
     {
         $customer = $this->authCustomer();
 
         $request->validate([
-            'email' => ['required', 'email', 'indisposable', 'unique:contacts,email,' . $customer->id],
+            'email' => ['required', 'email', 'indisposable', 'unique:contacts,email,'.$customer->id],
         ]);
-
 
         if ($customer->email_verified_at && $customer->email === $request->email) {
             throw new GeneralException('Email already verified');
@@ -116,7 +116,7 @@ class ProfileController extends Controller
         }
     }
 
-    public function emailVerify(Request $request): \Illuminate\Http\JsonResponse
+    public function emailVerify(Request $request): JsonResponse
     {
         $request->validate([
             'email' => ['required', 'email'],
@@ -127,25 +127,24 @@ class ProfileController extends Controller
             ->where('expires_at', '>=', now())
             ->first();
 
-        if (!$record || !Hash::check($request->code, $record->code)) {
-            throw new GeneralException("Invalid your OTP");
+        if (! $record || ! Hash::check($request->code, $record->code)) {
+            throw new GeneralException('Invalid your OTP');
         }
 
         $this->authCustomer()->update([
             'email_verified_at' => now(),
-            'email' => $request->email
+            'email' => $request->email,
         ]);
         $record->delete();
 
         return responseMessage('Email updated successfully');
     }
 
-
     /**
      * @throws Throwable
      * @throws GeneralException
      */
-    public function phoneVerifyRequest(Request $request): \Illuminate\Http\JsonResponse
+    public function phoneVerifyRequest(Request $request, ReveSmsService $smsService): JsonResponse
     {
         $customer = $this->authCustomer();
 
@@ -154,7 +153,7 @@ class ProfileController extends Controller
                 'required',
                 'string',
                 'regex:/^(\+?88)?01[0-9]{9}$/',
-                'unique:contacts,phone,' . $customer->id,
+                'unique:contacts,phone,'.$customer->id,
             ],
         ]);
 
@@ -180,8 +179,8 @@ class ProfileController extends Controller
             $message = "($companyName) Your {$companyName} OTP is: $otp. Please do not share your OTP with anyone";
 
             if ($production) {
-                $response = $this->sendSms($request->phone_number, $message);
-                if (!$response['success']) {
+                $response = $smsService->send($request->phone_number, $message);
+                if (! $response['success']) {
                     throw new GeneralException($response['message']);
                 }
             }
@@ -198,12 +197,12 @@ class ProfileController extends Controller
         }
     }
 
-
     /**
      * Verify OTP & update phone
+     *
      * @throws GeneralException
      */
-    public function phoneVerify(Request $request): \Illuminate\Http\JsonResponse
+    public function phoneVerify(Request $request): JsonResponse
     {
         $request->validate([
             'phone_number' => ['required', 'string'],
@@ -216,8 +215,8 @@ class ProfileController extends Controller
             ->where('expires_at', '>=', now())
             ->first();
 
-        if (!$record) {
-            throw new GeneralException("Invalid your OTP");
+        if (! $record) {
+            throw new GeneralException('Invalid your OTP');
         }
 
         $this->authCustomer()->update([
@@ -233,8 +232,6 @@ class ProfileController extends Controller
     /**
      * Helper function to interact with REVE SMS API.
      */
-
-
     public function password(Request $request)
     {
         $request->validate([
@@ -245,7 +242,7 @@ class ProfileController extends Controller
 
         $customer = $this->authCustomer();
 
-        if (!Hash::check($request->current_password, $customer->password)) {
+        if (! Hash::check($request->current_password, $customer->password)) {
             throw ValidationException::withMessages([
                 'current_password' => 'The provided password was incorrect.',
             ]);
@@ -255,52 +252,21 @@ class ProfileController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
+        $currentTokenId = $customer->currentAccessToken()?->id;
+        $customer->tokens()->when($currentTokenId, fn ($q) => $q->where('id', '!=', $currentTokenId))->delete();
 
         return responseMessage('Password updated successfully');
     }
 
-    public function logout(Request $request): \Illuminate\Http\JsonResponse
+    public function logout(Request $request): JsonResponse
     {
         $this->authCustomer()->currentAccessToken()->delete();
 
         return responseMessage('Logout successfully');
     }
 
-    private function authCustomer(): ?\Illuminate\Contracts\Auth\Authenticatable
+    private function authCustomer(): ?Authenticatable
     {
         return auth()->guard('customer')->user();
-    }
-
-    private function sendSms(string $phoneNumber, string $messageContent): array
-    {
-        $apiKey = Config::get('services.reve_sms.api_key');
-        $secret = Config::get('services.reve_sms.secret_key');
-        $sender = Config::get('services.reve_sms.sender_id');
-        $endpoint = Config::get('services.reve_sms.endpoint');
-
-        $response = Http::get($endpoint, [
-            'apikey' => $apiKey,
-            'secretkey' => $secret,
-            'callerID' => $sender,
-            'toUser' => $phoneNumber,
-            'messageContent' => $messageContent
-        ]);
-
-        $data = $response->json();
-
-        if (isset($data['Status']) && $data['Status'] == "0") {
-            return ['success' => true, 'message_id' => $data['Message_ID']];
-        }
-
-        $errorMessage = match ($data['Status'] ?? null) {
-            '109' => 'User not provided/deleted or API key is missing.',
-            '108' => 'Wrong password or not provided.',
-            '114' => 'Content not provided.',
-            '101' => 'Internal server error.',
-            '1' => 'Request failed.',
-            default => 'An unknown error occurred.'
-        };
-
-        return ['success' => false, 'message' => $errorMessage];
     }
 }

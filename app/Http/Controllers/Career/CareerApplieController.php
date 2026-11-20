@@ -16,7 +16,7 @@ class CareerApplieController extends Controller
             ->where('status', StatusEnum::Active->value)
             ->where('slug', $slug)->first();
 
-        if (!$job) {
+        if (! $job) {
             return errorResponse('Job not found', 404);
         }
 
@@ -30,13 +30,8 @@ class CareerApplieController extends Controller
             'cv' => [
                 'required',
                 'file',
+                'mimes:pdf,doc,docx',
                 'max:1024',
-                function ($attribute, $value, $fail) {
-                    $ext = strtolower($value->getClientOriginalExtension());
-                    if (!in_array($ext, ['pdf', 'doc', 'docx'])) {
-                        $fail("The {$attribute} must be a PDF, DOC, or DOCX file.");
-                    }
-                },
             ],
             'photo' => 'nullable|file|mimes:jpg,jpeg,png|max:1024',
             'skills' => 'nullable|max:500',
@@ -54,8 +49,8 @@ class CareerApplieController extends Controller
             'age' => $request->age,
             'skills' => $request->skills,
             'reason_of_join' => $request->reason_of_join,
-            'choos_reason'  => $request->choos_reason,
-            'status' => 1
+            'choos_reason' => $request->choos_reason,
+            'status' => 1,
         ]);
 
         $cvMedia = $application->addMediaFromRequest('cv')->toMediaCollection('candidate_cv');

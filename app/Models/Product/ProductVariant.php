@@ -6,28 +6,33 @@ use App\Models\Gift\GiftProduct;
 use App\Models\Offer\OfferProduct;
 use App\Models\PreOwned\PreOwned;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ProductVariant extends Model
 {
     use SoftDeletes;
 
-    protected $casts = [
-        'stock' => 'boolean',
-        'is_prebook' => 'boolean',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'stock' => 'boolean',
+            'is_prebook' => 'boolean',
+        ];
+    }
 
     public function price()
     {
         return $this->hasOne(VariantPrice::class, 'product_variant_id', 'id');
     }
 
-    public function attributeValues(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    public function attributeValues(): BelongsToMany
     {
         return $this->belongsToMany(AttributeValue::class, 'variant_attribute_values', 'product_variant_id')->withTimestamps();
     }
 
-    public function product(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class, 'product_id', 'id');
     }
