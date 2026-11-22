@@ -411,7 +411,9 @@ class ProductController extends Controller
             ->orderBy('display_price', $request->input('sort_by') === 'price_asc' ? 'asc' : 'desc')
             ->orderBy('numbering', 'asc')
             ->orderBy('products.id', 'asc')
-            ->with(['offerProduct', 'stockVariant' => function ($q) {
+            // 'brand' is read per product by SingleCategoryProductResource —
+            // without it, lazy-loading is blocked outside production (500).
+            ->with(['offerProduct', 'brand', 'stockVariant' => function ($q) {
                 $q->where('status', '1')
                     ->orderByLowestPrice()
                     ->with(['price']);

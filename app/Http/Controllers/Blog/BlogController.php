@@ -15,7 +15,7 @@ class BlogController extends Controller
     public function index()
     {
         $blogs = BlogPost::query()
-            ->with(['category:id,name', 'author:id,name'])
+            ->with(['category:id,name', 'author:id,name', 'tags:id,name,slug'])
             ->where('is_published', true)
             ->orderByDesc('is_pinned')
             ->orderBy('pinned_position')
@@ -55,7 +55,7 @@ class BlogController extends Controller
         }
 
         $posts = $tag->posts()
-            ->with(['category:id,name', 'author:id,name'])
+            ->with(['category:id,name', 'author:id,name', 'tags:id,name,slug'])
             ->orderBy('created_at', 'desc')
             ->paginate(clampPerPage(request('per_page'), 12, 48));
 
@@ -109,7 +109,7 @@ class BlogController extends Controller
     public function featuredBlog()
     {
         $featuredBlogs = BlogPost::query()
-            ->with(['category:id,name', 'author:id,name'])
+            ->with(['category:id,name', 'author:id,name', 'tags:id,name,slug'])
             ->where('is_published', true)
             ->where('is_featured', true)
             ->orderBy('created_at', 'desc')
@@ -128,7 +128,7 @@ class BlogController extends Controller
     public function recentBlog()
     {
         $recentBlogs = BlogPost::query()
-            ->with(['category:id,name', 'author:id,name'])
+            ->with(['category:id,name', 'author:id,name', 'tags:id,name,slug'])
             ->where('is_published', true)
             ->orderByDesc('is_pinned')          // pin করাগুলো আগে
             ->orderBy('pinned_position')        // তাদের মধ্যে আপনার ক্রম
@@ -148,7 +148,7 @@ class BlogController extends Controller
     {
 
         $popularBlogs = BlogPost::query()
-            ->with(['category:id,name', 'author:id,name'])
+            ->with(['category:id,name', 'author:id,name', 'tags:id,name,slug'])
             ->where('is_published', true)
             ->where('is_popular', true)
             ->orderBy('created_at', 'desc')
@@ -165,7 +165,7 @@ class BlogController extends Controller
     public function trendingBlog()
     {
         $trendingBlogs = BlogPost::query()
-            ->with(['category:id,name', 'author:id,name'])
+            ->with(['category:id,name', 'author:id,name', 'tags:id,name,slug'])
             ->where('is_published', true)
             ->where('is_trending', true)
             ->orderBy('created_at', 'desc')
