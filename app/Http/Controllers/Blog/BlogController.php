@@ -76,7 +76,7 @@ class BlogController extends Controller
      */
     private function relatedBlogs(BlogPost $blog, int $limit = 4)
     {
-        $withRelations = ['category:id,name', 'author:id,name'];
+        $withRelations = ['category:id,name', 'author:id,name', 'tags:id,name,slug'];
 
         $matched = BlogPost::query()
             ->with($withRelations)

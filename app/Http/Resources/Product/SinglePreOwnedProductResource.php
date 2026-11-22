@@ -110,7 +110,7 @@ class SinglePreOwnedProductResource extends JsonResource
 
         $base = [
             'productName'  => $product->product_name,
-            'canonical'    => config('services.front_base_url') . '/product/' . $product->slug . "?preOwnedId=" . $this->id,
+            'canonical'    => config('services.front_base_url') . '/used-device/product/' . $product->slug . "?preOwnedId=" . $this->id,
             'ogImage'      => $this->thumbnail_image,
             'siteName'     => config('app.name'),
             'brand'        => $brand,
