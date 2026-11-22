@@ -12,6 +12,18 @@ use Tests\TestCase;
 
 class AddressSecurityTest extends TestCase
 {
+    /**
+     * Routes are protected by `auth:sanctum` while controllers read the user
+     * from the `customer` guard, so authenticate both. Do NOT add `customer`
+     * to config('sanctum.guard') instead — that guard uses the sanctum driver
+     * and makes Sanctum recurse into itself (500 on every customer route).
+     */
+    private function actingAsCustomer(Contact $customer): void
+    {
+        Sanctum::actingAs($customer, ['*'], 'sanctum');
+        Sanctum::actingAs($customer, ['*'], 'customer');
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -73,7 +85,7 @@ class AddressSecurityTest extends TestCase
             'label' => 'home',
         ]);
 
-        Sanctum::actingAs($customerB, ['*'], 'customer');
+        $this->actingAsCustomer($customerB);
 
         $response = $this->getJson("/api/v1/customer/addresses/{$addressA->id}");
 
@@ -97,7 +109,7 @@ class AddressSecurityTest extends TestCase
             'label' => 'home',
         ]);
 
-        Sanctum::actingAs($customerB, ['*'], 'customer');
+        $this->actingAsCustomer($customerB);
 
         $response = $this->putJson("/api/v1/customer/addresses/{$addressA->id}", [
             'name' => 'Hacked',
@@ -125,7 +137,7 @@ class AddressSecurityTest extends TestCase
             'label' => 'home',
         ]);
 
-        Sanctum::actingAs($customerB, ['*'], 'customer');
+        $this->actingAsCustomer($customerB);
 
         $response = $this->deleteJson("/api/v1/customer/addresses/{$addressA->id}");
 
@@ -146,7 +158,7 @@ class AddressSecurityTest extends TestCase
             'label' => 'home',
         ]);
 
-        Sanctum::actingAs($customerA, ['*'], 'customer');
+        $this->actingAsCustomer($customerA);
 
         $response = $this->deleteJson("/api/v1/customer/addresses/{$addressA->id}");
 
