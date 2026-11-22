@@ -25,13 +25,14 @@ class CartController extends Controller
             'cartItems.product.brand:id,name',
             'cartItems.product.category:id,name',
             'cartItems.variant.attributeValues.attribute',
+            'cartItems.variant.product.images',
             'cartItems.preOwned',
             'cartItems' => function ($q) {
                 $q->with(
                     ['giftProductVariant' => function ($q) {
                         $q->with([
                             'productVariant' => function ($q) {
-                                $q->with('product:id,product_name,product_image,sku', 'attributeValues');
+                                $q->with('product:id,product_name,product_image,sku', 'attributeValues.attribute');
                             }
                         ]);
                     }, 'productCare' => function ($q) {
