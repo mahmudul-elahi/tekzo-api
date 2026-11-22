@@ -616,7 +616,7 @@ class HomePageController extends Controller
     {
         $reels = ReelsVideo::query()
             ->whereHas('product', fn ($query) => $query->where('status', ProductStatus::Active->value))
-            ->with(['product:id,slug,product_name,headline,product_image,short_description,brand_id', 'product.brand', 'product.stockVariant' => function ($q) {
+            ->with(['product:id,slug,product_name,headline,product_image,short_description,brand_id', 'product.brand', 'product.offerProduct', 'product.stockVariant' => function ($q) {
                 $q->where('status', '1')
                     ->with(['price']);
             }])
