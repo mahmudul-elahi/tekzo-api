@@ -21,7 +21,8 @@ class WishlistController extends Controller
         $cart = Wishlist::query()->with([
             'items.product.brand:id,name',
             'items.product.category:id,name',
-            'items.variant.attributeValues.attribute'
+            'items.variant.attributeValues.attribute',
+            'items.variant.product.images',
         ])
             ->where('contact_id', auth()->guard('customer')->id())
             ->first();
