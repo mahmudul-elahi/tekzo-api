@@ -46,7 +46,7 @@ class CheckoutService
         }
 
         $this->cartService->recalculate($cart);
-        $cart->refresh();
+        $cart->refresh()->load(['cartItems.product', 'cartItems.preOwned', 'coupon']);
 
         $shippingAddress = $this->addresses->findById($shippingAddressId);
         $shippingCharge = ShippingChargeService::resolveForArea(

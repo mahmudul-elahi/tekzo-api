@@ -33,14 +33,22 @@ class OrderConfirmJob implements ShouldQueue
      */
     public function handle(): void
     {
-        $order = $this->order->load(['contact', 'orderLists' => function ($query) {
+        // Everything the invoice view reads, so it renders without lazy loading.
+        $order = $this->order->load(['contact', 'shippingAddress', 'area', 'orderLists' => function ($query) {
             $query->with([
                 'preOwned.attributes.attributeValue',
                 'product',
-                'variant.attributeValues',
+                'variant.attributeValues.attribute',
+                'giftProductVariant' => function ($query) {
+                    $query->with(
+                        'product:id,product_name,product_image',
+                        'productVariant.attributeValues',
+                    );
+                },
                 'productCare.care',
                 'preOwnedCare.care',
-            ]);
+            ])
+                ->withCount('giftProductVariant as total_gift_quantity');
         }]);
 
         $totalDiscount = $order->orderLists->sum(function ($item) {

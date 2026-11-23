@@ -247,7 +247,7 @@ class ProductRepository extends BaseRepository
             ->select('id', 'product_name', 'slug', 'headline', 'product_image', 'category_id', 'is_refurbished')
             ->where('status', ProductStatus::Active->value)
 
-            ->with(['category:id,name,slug', 'stockVariant.price'])
+            ->with(['category:id,name,slug', 'stockVariant.price', 'offerProduct'])
             ->withCount('reviews')
             ->limit(4)
             ->get();

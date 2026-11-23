@@ -32,13 +32,13 @@ class InvoiceDownloadController extends Controller
         $pdf = $this->invoiceService->pdf($order);
 
         if ($request->has('preview')) {
-            return response()->make($pdf->stream(), 200, [
+            return response()->make($pdf->output(), 200, [
                 'Content-Type' => 'application/pdf',
                 'Content-Disposition' => 'inline; filename="'.$order->invoice_number.'.pdf"',
             ]);
         }
 
-        return response()->make($pdf->download($order->invoice_number.'.pdf'), 200, [
+        return response()->make($pdf->output(), 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="'.$order->invoice_number.'.pdf"',
         ]);

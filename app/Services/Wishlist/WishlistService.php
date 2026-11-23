@@ -7,7 +7,6 @@ use App\Models\Wishlist\Wishlist;
 use App\Repositories\Product\ProductVariantRepository;
 use App\Repositories\Wishlist\WishlistRepository;
 use App\Support\VariantDiscount;
-use Exception;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -54,7 +53,7 @@ class WishlistService
                 $newQty = $item->quantity + $quantity;
 
                 if ($newQty > self::MAX_QUANTITY) {
-                    throw new Exception('Max quantity is '.self::MAX_QUANTITY, 400);
+                    throw new GeneralException('Max quantity is '.self::MAX_QUANTITY, 400);
                 }
 
                 $item->update(['quantity' => $newQty]);
@@ -98,7 +97,7 @@ class WishlistService
 
         DB::transaction(function () use ($item, $quantity) {
             $item->update(['quantity' => $quantity]);
-            $this->recalculate($item->cart);
+            $this->recalculate($item->wishlist);
         });
     }
 
@@ -134,11 +133,11 @@ class WishlistService
         }
 
         DB::transaction(function () use ($item, $isSelect) {
-            $cart = $item->cart;
+            $wishlist = $item->wishlist;
             $item->update([
                 'is_select' => $isSelect,
             ]);
-            $this->recalculate($cart);
+            $this->recalculate($wishlist);
         });
     }
 

@@ -104,8 +104,8 @@ class BlogPostRepository extends BaseRepository
     public function findPublishedTagBySlug(string $slug): ?BlogTag
     {
         return BlogTag::query()
-            ->where('is_published', true)
-            ->where('slug', $slug)->first();
+            ->where('slug', $slug)
+            ->first();
     }
 
     public function paginatePostsOfTag(BlogTag $tag, int $perPage): LengthAwarePaginator

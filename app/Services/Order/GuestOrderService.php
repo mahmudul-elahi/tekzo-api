@@ -95,6 +95,8 @@ class GuestOrderService
 
                 return $order;
             });
+        } catch (GeneralException $e) {
+            throw $e;
         } catch (\Exception $e) {
             throw new GeneralException(
                 app()->isProduction()

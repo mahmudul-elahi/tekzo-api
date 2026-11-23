@@ -62,7 +62,7 @@ class CouponService
             throw new GeneralException('Coupon is not applicable to any items in your cart', 400);
         }
 
-        $discount = $coupon->discount_type === 'percent'
+        $discount = $this->isPercentage($coupon)
             ? ($applicableSubTotal * $coupon->discount_value / 100)
             : $coupon->discount_value;
 
@@ -152,7 +152,7 @@ class CouponService
             throw new GeneralException('Coupon is not applicable to any items in your order', 400);
         }
 
-        $discount = $coupon->discount_type === 'percent'
+        $discount = $this->isPercentage($coupon)
             ? ($applicableTotal * $coupon->discount_value / 100)
             : $coupon->discount_value;
 
@@ -233,6 +233,14 @@ class CouponService
 
             return max($price, 0);
         }, $lines));
+    }
+
+    /**
+     * Coupons are stored as 'percentage' (older data may say 'percent').
+     */
+    private function isPercentage(NewCoupon $coupon): bool
+    {
+        return in_array($coupon->discount_type, ['percentage', 'percent'], true);
     }
 
     private function applicableSubTotal(SupportCollection $cartItems, NewCoupon $coupon): float
