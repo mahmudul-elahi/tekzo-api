@@ -35,6 +35,40 @@ class ReviewRepository extends BaseRepository
     }
 
     /**
+     * A customer's reviews, newest first, with the product and the reviewed variant's attributes.
+     */
+    public function paginateForContact(mixed $contactId, int $perPage): LengthAwarePaginator
+    {
+        return $this->query()
+            ->with(['product:id,product_name', 'orderList' => function ($query) {
+                $query->with(['variant' => function ($query) {
+                    $query->with(['attributeValues']);
+                }]);
+            }])
+            ->where('contact_id', $contactId)
+            ->orderByDesc('id')
+            ->paginate($perPage);
+    }
+
+    /**
+     * Create or update the customer's review of one order line.
+     */
+    public function upsertForOrderLine(mixed $contactId, mixed $productId, mixed $orderDetailId, mixed $rating, ?string $comment): Review
+    {
+        return $this->query()->updateOrCreate(
+            [
+                'contact_id' => $contactId,
+                'product_id' => $productId,
+                'order_detail_id' => $orderDetailId,
+            ],
+            [
+                'rating' => $rating,
+                'comment' => $comment ?? null,
+            ]
+        );
+    }
+
+    /**
      * A product's active reviews, newest first.
      */
     public function paginateActiveForProduct(int $productId, int $perPage): LengthAwarePaginator

@@ -2,108 +2,73 @@
 
 namespace App\Http\Controllers\Api\V1\Customer\Profile;
 
+use App\Exceptions\GeneralException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Address\AddressRequest;
 use App\Http\Resources\Customer\Address\CustomerAddressResource;
 use App\Models\Address\CustomerAddress;
+use App\Services\Address\AddressService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AddressController extends Controller
 {
-    protected function customerId(): int
-    {
-        return (int) auth()->guard('customer')->id();
-    }
+    public function __construct(private AddressService $addressService) {}
 
     public function index(): JsonResponse
     {
-        $addresses = CustomerAddress::query()
-            ->with(['district:id,name', 'area', 'contact:id,name,phone'])
-            ->where('contact_id', $this->customerId())
-            ->orderByDesc('id')
-            ->get();
-
-        return successResponse(CustomerAddressResource::collection($addresses));
+        return successResponse(CustomerAddressResource::collection($this->addressService->forCustomer($this->customerId())));
     }
 
-    /**
-     * Store a new customer address
-     */
     public function store(AddressRequest $request): JsonResponse
     {
-        $validated = $request->validated();
-        $customerId = $this->customerId();
-
-        // Handle default shipping
-        if (! empty($validated['is_default_shipping'])) {
-            CustomerAddress::query()
-                ->where('contact_id', $customerId)
-                ->update(['is_default_shipping' => false]);
-        }
-
-        // Handle default billing
-        if (! empty($validated['is_default_billing'])) {
-            CustomerAddress::query()
-                ->where('contact_id', $customerId)
-                ->update(['is_default_billing' => false]);
-        }
-
-        // Create the new address
-        CustomerAddress::query()->create(array_merge($validated, [
-            'contact_id' => $customerId,
-        ]));
+        $this->addressService->create($this->customerId(), $request->validated());
 
         return responseMessage('Address created successfully');
     }
 
     /**
-     * Show an existing address
+     * @throws GeneralException
      */
     public function show(CustomerAddress $address): JsonResponse
     {
-        if ((int) $address->contact_id !== $this->customerId()) {
-            return responseMessage('Address not found', 404);
-        }
+        $this->addressService->ensureOwnedBy($address, $this->customerId());
 
         return successResponse($address);
     }
 
     /**
-     * Update an existing address
+     * @throws GeneralException
      */
     public function update(AddressRequest $request, CustomerAddress $address): JsonResponse
     {
-        if ((int) $address->contact_id !== $this->customerId()) {
-            return responseMessage('Address not found', 404);
-        }
+        $this->addressService->ensureOwnedBy($address, $this->customerId());
 
-        $validated = $request->validated();
-
-        $address->update($validated);
+        $address->update($request->validated());
 
         return responseMessage('Address updated successfully');
     }
 
     /**
-     * Delete an existing address
+     * @throws GeneralException
      */
     public function destroy(CustomerAddress $address): JsonResponse
     {
-        if ((int) $address->contact_id !== $this->customerId()) {
-            return responseMessage('Address not found', 404);
-        }
+        $this->addressService->ensureOwnedBy($address, $this->customerId());
 
         $address->delete();
 
         return responseMessage('Address deleted successfully');
     }
 
+    /**
+     * Make the address the default shipping (or, failing that, billing) address.
+     *
+     * @throws GeneralException
+     */
     public function defaultAddress(Request $request, CustomerAddress $address): JsonResponse
     {
-        if ((int) $address->contact_id !== $this->customerId()) {
-            return responseMessage('Address not found', 404);
-        }
+        $this->addressService->ensureOwnedBy($address, $this->customerId());
 
         $validated = $request->validate([
             'is_default_shipping' => ['nullable', 'boolean'],
@@ -111,13 +76,13 @@ class AddressController extends Controller
         ]);
 
         if (! empty($validated['is_default_shipping'])) {
-            $this->setDefault($address, 'is_default_shipping');
+            $this->addressService->makeDefault($address, $this->customerId(), 'is_default_shipping');
 
             return responseMessage('Default shipping address updated successfully');
         }
 
         if (! empty($validated['is_default_billing'])) {
-            $this->setDefault($address, 'is_default_billing');
+            $this->addressService->makeDefault($address, $this->customerId(), 'is_default_billing');
 
             return responseMessage('Default billing address updated successfully');
         }
@@ -127,36 +92,11 @@ class AddressController extends Controller
 
     public function defaultShippingBillingAddress(): JsonResponse
     {
-        $customerId = $this->customerId();
-
-        $shippingAddress = CustomerAddress::query()
-            ->with(['district:id,name', 'area'])
-            ->where('contact_id', $customerId)
-            ->where('is_default_shipping', true)
-            ->first();
-
-        $billingAddress = CustomerAddress::query()
-            ->with(['district:id,name', 'area'])
-            ->where('contact_id', $customerId)
-            ->where('is_default_billing', true)
-            ->first();
-
-        return successResponse([
-            'shippingAddress' => $shippingAddress,
-            'billingAddress' => $billingAddress,
-        ]);
+        return successResponse($this->addressService->defaults($this->customerId()));
     }
 
-    /**
-     * Helper to set the given address as default for a specific type.
-     */
-    protected function setDefault(CustomerAddress $address, string $column): void
+    private function customerId(): int
     {
-        CustomerAddress::query()
-            ->where('contact_id', $this->customerId())
-            ->where('id', '!=', $address->id)
-            ->update([$column => false]);
-
-        $address->update([$column => true]);
+        return (int) auth()->guard('customer')->id();
     }
 }

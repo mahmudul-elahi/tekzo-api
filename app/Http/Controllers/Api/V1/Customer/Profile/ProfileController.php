@@ -4,28 +4,23 @@ namespace App\Http\Controllers\Api\V1\Customer\Profile;
 
 use App\Exceptions\GeneralException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Customer\Profile\ChangePasswordRequest;
 use App\Http\Requests\Customer\Profile\ProfileRequest;
 use App\Http\Resources\Customer\Profile\ProfileResource;
-use App\Mail\Customer\EmailVerifyRequestMail;
-use App\Models\Customer\VerificationCode;
-use App\Services\Sms\ReveSmsService;
-use Illuminate\Contracts\Auth\Authenticatable;
+use App\Models\Contact\Contact;
+use App\Services\Customer\ProfileService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class ProfileController extends Controller
 {
-    public function index()
-    {
-        $customer = $this->authCustomer()->load(['elite', 'eliteHistories.elite']);
+    public function __construct(private ProfileService $profileService) {}
 
-        return successResponse(ProfileResource::make($customer));
+    public function index(): JsonResponse
+    {
+        return successResponse(ProfileResource::make($this->profileService->withEliteDetails($this->authCustomer())));
     }
 
     /**
@@ -34,39 +29,13 @@ class ProfileController extends Controller
      */
     public function update(ProfileRequest $request): JsonResponse
     {
-        $customer = $this->authCustomer();
+        $this->profileService->update(
+            $this->authCustomer(),
+            collect($request->validated())->except('profile_picture')->toArray(),
+            $request->hasFile('profile_picture') ? $request->file('profile_picture') : null,
+        );
 
-        try {
-            DB::beginTransaction();
-
-            $customer->update(
-                collect($request->validated())
-                    ->except('profile_picture')
-                    ->toArray()
-            );
-
-            if ($request->hasFile('profile_picture')) {
-                $customer->clearMediaCollection('customer_profile_picture');
-                $customer->addMediaFromRequest('profile_picture')
-                    ->toMediaCollection('customer_profile_picture');
-
-                $profilePicture = $customer->getCustomerProfilePictureAttribute();
-
-                if ($profilePicture) {
-                    $customer->update(['profile_picture' => $profilePicture]);
-                }
-            }
-
-            DB::commit();
-
-            return successResponse('Profile updated successfully');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            throw new GeneralException(
-                app()->isProduction() ? 'Profile update failed' : $e->getMessage(),
-                500
-            );
-        }
+        return successResponse('Profile updated successfully');
     }
 
     /**
@@ -81,41 +50,14 @@ class ProfileController extends Controller
             'email' => ['required', 'email', 'indisposable', 'unique:contacts,email,'.$customer->id],
         ]);
 
-        if ($customer->email_verified_at && $customer->email === $request->email) {
-            throw new GeneralException('Email already verified');
-        }
+        $this->profileService->requestEmailChange($customer, $request->email);
 
-        try {
-            DB::beginTransaction();
-
-            $otp = random_int(100000, 999999);
-
-            $production = app()->isProduction();
-
-            VerificationCode::query()->updateOrCreate(
-                ['email' => $request->email],
-                [
-                    'code' => $production ? Hash::make($otp) : Hash::make(123456),
-                    'expires_at' => now()->addMinutes(3),
-                ]
-            );
-
-            if ($production) {
-                Mail::to($request->email)->send(new EmailVerifyRequestMail($otp));
-            }
-
-            DB::commit();
-
-            return responseMessage('Email update OTP sent successfully');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            throw new GeneralException(
-                app()->isProduction() ? 'Email update request failed' : $e->getMessage(),
-                500
-            );
-        }
+        return responseMessage('Email update OTP sent successfully');
     }
 
+    /**
+     * @throws GeneralException
+     */
     public function emailVerify(Request $request): JsonResponse
     {
         $request->validate([
@@ -123,19 +65,7 @@ class ProfileController extends Controller
             'code' => ['required'],
         ]);
 
-        $record = VerificationCode::query()->where('email', $request->email)
-            ->where('expires_at', '>=', now())
-            ->first();
-
-        if (! $record || ! Hash::check($request->code, $record->code)) {
-            throw new GeneralException('Invalid your OTP');
-        }
-
-        $this->authCustomer()->update([
-            'email_verified_at' => now(),
-            'email' => $request->email,
-        ]);
-        $record->delete();
+        $this->profileService->confirmEmailChange($this->authCustomer(), $request->email, $request->code);
 
         return responseMessage('Email updated successfully');
     }
@@ -144,7 +74,7 @@ class ProfileController extends Controller
      * @throws Throwable
      * @throws GeneralException
      */
-    public function phoneVerifyRequest(Request $request, ReveSmsService $smsService): JsonResponse
+    public function phoneVerifyRequest(Request $request): JsonResponse
     {
         $customer = $this->authCustomer();
 
@@ -157,48 +87,13 @@ class ProfileController extends Controller
             ],
         ]);
 
-        if ($customer->phone === $request->phone_number) {
-            throw new GeneralException('Phone number already verified');
-        }
+        $this->profileService->requestPhoneChange($customer, $request->phone_number);
 
-        try {
-            DB::beginTransaction();
-
-            $otp = random_int(100000, 999999);
-
-            $production = app()->isProduction();
-
-            VerificationCode::query()->updateOrCreate(
-                ['phone_number' => $request->phone_number],
-                [
-                    'code' => $production ? $otp : 123456, // keeping plain int for SMS
-                    'expires_at' => now()->addMinutes(3),
-                ]
-            );
-            $companyName = Config::get('app.name');
-            $message = "($companyName) Your {$companyName} OTP is: $otp. Please do not share your OTP with anyone";
-
-            if ($production) {
-                $response = $smsService->send($request->phone_number, $message);
-                if (! $response['success']) {
-                    throw new GeneralException($response['message']);
-                }
-            }
-
-            DB::commit();
-
-            return responseMessage('Phone update OTP sent successfully');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            throw new GeneralException(
-                app()->isProduction() ? 'Phone update request failed' : $e->getMessage(),
-                500
-            );
-        }
+        return responseMessage('Phone update OTP sent successfully');
     }
 
     /**
-     * Verify OTP & update phone
+     * Verify OTP & update phone.
      *
      * @throws GeneralException
      */
@@ -209,63 +104,29 @@ class ProfileController extends Controller
             'code' => ['required'],
         ]);
 
-        $record = VerificationCode::query()
-            ->where('phone_number', $request->phone_number)
-            ->where('code', $request->code)
-            ->where('expires_at', '>=', now())
-            ->first();
-
-        if (! $record) {
-            throw new GeneralException('Invalid your OTP');
-        }
-
-        $this->authCustomer()->update([
-            'phone' => $record->phone_number,
-            'phone_verified_at' => now(),
-
-        ]);
-        $record->delete();
+        $this->profileService->confirmPhoneChange($this->authCustomer(), $request->phone_number, $request->code);
 
         return responseMessage('Phone number updated successfully');
     }
 
     /**
-     * Helper function to interact with REVE SMS API.
+     * @throws ValidationException
      */
-    public function password(Request $request)
+    public function password(ChangePasswordRequest $request): JsonResponse
     {
-        $request->validate([
-            'current_password' => ['required'],
-            'password' => ['required', 'min:8'],
-            'password_confirmation' => ['required_with:password', 'same:password'],
-        ]);
-
-        $customer = $this->authCustomer();
-
-        if (! Hash::check($request->current_password, $customer->password)) {
-            throw ValidationException::withMessages([
-                'current_password' => 'The provided password was incorrect.',
-            ]);
-        }
-
-        $customer->update([
-            'password' => Hash::make($request->password),
-        ]);
-
-        $currentTokenId = $customer->currentAccessToken()?->id;
-        $customer->tokens()->when($currentTokenId, fn ($q) => $q->where('id', '!=', $currentTokenId))->delete();
+        $this->profileService->changePassword($this->authCustomer(), $request->current_password, $request->password);
 
         return responseMessage('Password updated successfully');
     }
 
-    public function logout(Request $request): JsonResponse
+    public function logout(): JsonResponse
     {
-        $this->authCustomer()->currentAccessToken()->delete();
+        $this->profileService->logout($this->authCustomer());
 
         return responseMessage('Logout successfully');
     }
 
-    private function authCustomer(): ?Authenticatable
+    private function authCustomer(): ?Contact
     {
         return auth()->guard('customer')->user();
     }

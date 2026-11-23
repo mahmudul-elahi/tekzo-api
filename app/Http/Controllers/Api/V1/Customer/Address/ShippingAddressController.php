@@ -3,19 +3,15 @@
 namespace App\Http\Controllers\Api\V1\Customer\Address;
 
 use App\Http\Controllers\Controller;
-use App\Models\Address\CustomerAddress;
-use Illuminate\Http\Request;
+use App\Services\Address\AddressService;
+use Illuminate\Http\JsonResponse;
 
 class ShippingAddressController extends Controller
 {
-    public function index(Request $request)
-    {
-        $addresses = CustomerAddress::query()
-            ->with(['district', 'area'])
-            ->where('contact_id', auth()->guard('customer')->id())
-            ->orderByDesc('id')
-            ->get();
+    public function __construct(private AddressService $addressService) {}
 
-        return successResponse($addresses);
+    public function index(): JsonResponse
+    {
+        return successResponse($this->addressService->shippingAddresses(auth()->guard('customer')->id()));
     }
 }
