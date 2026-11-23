@@ -70,6 +70,24 @@ class OrderListRepository
     }
 
     /**
+     * @param  array<string, mixed>  $attributes
+     */
+    public function create(array $attributes): OrderList
+    {
+        return OrderList::query()->create($attributes);
+    }
+
+    /**
+     * Bulk insert order lines (no model events).
+     *
+     * @param  array<int, array<string, mixed>>  $rows
+     */
+    public function insert(array $rows): void
+    {
+        OrderList::query()->insert($rows);
+    }
+
+    /**
      * Path of the product's primary image for an attribute value (color).
      */
     public function primaryImagePath(mixed $productId, mixed $attributeValueId): ?string

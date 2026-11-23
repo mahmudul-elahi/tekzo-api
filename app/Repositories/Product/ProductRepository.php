@@ -19,6 +19,25 @@ class ProductRepository extends BaseRepository
         $this->model = $product;
     }
 
+    public function findById(mixed $id): ?Product
+    {
+        return Product::find($id);
+    }
+
+    /**
+     * Products with brand and category, keyed by id.
+     *
+     * @param  array<int, mixed>  $ids
+     * @return Collection<int, Product>
+     */
+    public function withBrandAndCategoryKeyedById(array $ids): Collection
+    {
+        return Product::with(['brand', 'category'])
+            ->whereIn('id', $ids)
+            ->get()
+            ->keyBy('id');
+    }
+
     /**
      * A visible (active or coming soon) product with everything the detail page needs.
      */

@@ -5,6 +5,7 @@ namespace App\Repositories\Cart;
 use App\Models\Cart\Cart;
 use App\Models\Cart\CartItem;
 use App\Repositories\BaseRepository;
+use Illuminate\Support\Collection;
 
 class CartRepository extends BaseRepository
 {
@@ -43,6 +44,32 @@ class CartRepository extends BaseRepository
             ])
             ->where('contact_id', $contactId)
             ->first();
+    }
+
+    /**
+     * A customer's cart with its items' products and the applied coupon.
+     */
+    public function findForCheckout(mixed $contactId): ?Cart
+    {
+        return $this->query()
+            ->where('contact_id', $contactId)
+            ->with(['cartItems.product', 'coupon'])
+            ->first();
+    }
+
+    public function countForContact(mixed $contactId): int
+    {
+        return $this->query()
+            ->where('contact_id', $contactId)
+            ->count();
+    }
+
+    /**
+     * @param  Collection<int, int>  $itemIds
+     */
+    public function deleteItems(Collection $itemIds): void
+    {
+        CartItem::query()->whereIn('id', $itemIds)->delete();
     }
 
     /**

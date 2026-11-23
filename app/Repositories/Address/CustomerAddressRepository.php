@@ -13,6 +13,11 @@ class CustomerAddressRepository extends BaseRepository
         $this->model = $customerAddress;
     }
 
+    public function findById(mixed $id): ?CustomerAddress
+    {
+        return $this->query()->find($id);
+    }
+
     /**
      * A customer's addresses, newest first.
      *

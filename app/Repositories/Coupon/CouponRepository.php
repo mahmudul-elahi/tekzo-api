@@ -59,7 +59,7 @@ class CouponRepository
     /**
      * An active coupon valid today, with its product scopes and usage count.
      */
-    public function findValidByCode(string $code): ?NewCoupon
+    public function findValidByCode(mixed $code): ?NewCoupon
     {
         return NewCoupon::where('code', $code)
             ->where('status', true)
@@ -75,6 +75,15 @@ class CouponRepository
         return CustomerCouponLog::where('new_coupon_id', $couponId)
             ->where('contact_id', $contactId)
             ->exists();
+    }
+
+    public function logUsage(int $couponId, mixed $contactId): void
+    {
+        CustomerCouponLog::create([
+            'new_coupon_id' => $couponId,
+            'contact_id' => $contactId,
+            'used_at' => now(),
+        ]);
     }
 
     /**

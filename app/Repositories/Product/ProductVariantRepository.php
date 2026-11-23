@@ -28,6 +28,17 @@ class ProductVariantRepository extends BaseRepository
     }
 
     /**
+     * A variant with its price and offer, row-locked for the current transaction.
+     */
+    public function findPricedForUpdate(mixed $id): ?ProductVariant
+    {
+        return ProductVariant::with(['price', 'offerProduct'])
+            ->where('id', $id)
+            ->lockForUpdate()
+            ->first();
+    }
+
+    /**
      * A variant with its price, offer and product, row-locked for the current transaction.
      */
     public function findWithPricingForUpdate(mixed $id): ?ProductVariant

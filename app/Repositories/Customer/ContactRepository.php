@@ -23,6 +23,18 @@ class ContactRepository extends BaseRepository
     }
 
     /**
+     * A guest contact (no password) with exactly this email and phone.
+     */
+    public function findGuest(mixed $email, mixed $phone): ?Contact
+    {
+        return $this->query()
+            ->where('email', $email)
+            ->where('phone', $phone)
+            ->whereNull('password')
+            ->first();
+    }
+
+    /**
      * @param  array<string, mixed>  $attributes
      */
     public function create(array $attributes): Contact
