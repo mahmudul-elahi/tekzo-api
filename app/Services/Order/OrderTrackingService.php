@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Order;
 
 use App\Models\Order\Order;
@@ -14,8 +16,8 @@ use Illuminate\Database\Eloquent\Collection;
 class OrderTrackingService
 {
     public function __construct(
-        private OrderRepository $orders,
-        private ProductVerifyRepository $productVerifies,
+        private readonly OrderRepository $orders,
+        private readonly ProductVerifyRepository $productVerifies,
     ) {}
 
     public function findByInvoiceNumber(mixed $invoiceNumber): ?Order

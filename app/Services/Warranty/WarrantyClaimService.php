@@ -4,12 +4,13 @@ namespace App\Services\Warranty;
 
 use App\Enums\StatusEnum;
 use App\Exceptions\GeneralException;
+use App\Models\Product\ProductSerial;
 use App\Repositories\Warranty\WarrantyClaimRepository;
 use Carbon\Carbon;
 
 class WarrantyClaimService
 {
-    public function __construct(private WarrantyClaimRepository $claims) {}
+    public function __construct(private readonly WarrantyClaimRepository $claims) {}
 
     /**
      * Verify a serial (IMEI/SL) and log a warranty claim for it.
@@ -22,7 +23,7 @@ class WarrantyClaimService
     {
         $productSerial = $this->claims->findSerialWithProduct($serialNumber);
 
-        if (! $productSerial) {
+        if (! $productSerial instanceof ProductSerial) {
             throw new GeneralException('Invalid IMEI/SL number. Please check and try again.', 404);
         }
 

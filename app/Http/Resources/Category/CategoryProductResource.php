@@ -10,6 +10,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class CategoryProductResource extends JsonResource
 {
     use ResolvesProductCoupon;
+
     /**
      * Transform the resource into an array.
      *
@@ -23,7 +24,7 @@ class CategoryProductResource extends JsonResource
             ['percent' => $discountPercent, 'fixed' => $discountFixed] = PriceCalculator::resolveProductDiscount($this->offerProduct);
         } else {
             $discountPercent = $price->discount_percent ?? 0;
-            $discountFixed   = $price->discount_fixed ?? 0;
+            $discountFixed = $price->discount_fixed ?? 0;
         }
 
         return [
@@ -55,7 +56,7 @@ class CategoryProductResource extends JsonResource
             'is_chinese' => $this->is_chinese,
             'is_unofficial' => $this->is_unofficial,
             'is_refurbished' => $this->is_refurbished,
-            'is_care' => $this->cares_count > 0 ? true : false,
+            'is_care' => $this->cares_count > 0,
             'is_offer' => $this->offerProduct !== null,
             'is_stock' => $this->stockVariant?->stock,
             'is_prebook' => $this->stockVariant?->is_prebook,
@@ -65,9 +66,9 @@ class CategoryProductResource extends JsonResource
                 'logo' => $this->brand?->primary_logo,
             ] : null,
 
-            'gift' => $this->gift_product_count > 0 ? true : false,
-            'avg_rating'      => floatval($this->reviews_avg_rating),
-            'coupon'       => $this->resolveCoupon(),
+            'gift' => $this->gift_product_count > 0,
+            'avg_rating' => floatval($this->reviews_avg_rating),
+            'coupon' => $this->resolveCoupon(),
         ];
     }
 }

@@ -16,8 +16,8 @@ use Throwable;
 class PhoneOtpService
 {
     public function __construct(
-        private VerificationCodeRepository $codes,
-        private ReveSmsService $smsService,
+        private readonly VerificationCodeRepository $codes,
+        private readonly ReveSmsService $smsService,
     ) {}
 
     /**
@@ -50,10 +50,7 @@ class PhoneOtpService
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-            throw new GeneralException(
-                app()->isProduction() ? 'Phone update request failed' : $e->getMessage(),
-                500
-            );
+            throw new GeneralException(app()->isProduction() ? 'Phone update request failed' : $e->getMessage(), 500, $e);
         }
     }
 

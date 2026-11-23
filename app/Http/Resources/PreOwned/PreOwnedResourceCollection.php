@@ -18,12 +18,12 @@ class PreOwnedResourceCollection extends ResourceCollection
      *
      * @return array<int|string, mixed>
      */
-
     public function toArray(Request $request): array
     {
         return [
             'pre_owneds' => $this->collection->map(function ($data) {
                 $preOwned = $data?->preOwned;
+
                 return [
                     'id' => $data->id,
                     'product_name' => $data?->product_name,
@@ -44,7 +44,6 @@ class PreOwnedResourceCollection extends ResourceCollection
                     'category' => $data?->category,
                     'brand' => $data?->brand,
 
-
                 ];
             }),
             'brands' => $this->preOwnedBrand(),
@@ -56,11 +55,11 @@ class PreOwnedResourceCollection extends ResourceCollection
 
     private function preOwnedCategory()
     {
-        $categories = PreOwned::query()
+        return PreOwned::query()
             ->whereHas('product', function ($query) {
                 $query->whereIn('status', [
                     ProductStatus::Active->value,
-                    ProductStatus::Comming->value
+                    ProductStatus::Comming->value,
                 ]);
             })
             ->with(['product' => function ($query) {
@@ -71,8 +70,6 @@ class PreOwnedResourceCollection extends ResourceCollection
             ->pluck('product.category')
             ->unique('id')
             ->values();
-
-        return $categories;
     }
 
     private function preOwnedBrand()
@@ -81,7 +78,7 @@ class PreOwnedResourceCollection extends ResourceCollection
             ->whereHas('products', function ($query) {
                 $query->whereIn('status', [
                     ProductStatus::Active->value,
-                    ProductStatus::Comming->value
+                    ProductStatus::Comming->value,
                 ])->whereHas('preOwned');
             })
             ->where('status', StatusEnum::Active->value)
@@ -91,8 +88,9 @@ class PreOwnedResourceCollection extends ResourceCollection
         $brands->prepend([
             'id' => 0,
             'name' => 'All Brands',
-            'slug' => 'all'
+            'slug' => 'all',
         ]);
+
         return $brands;
     }
 
@@ -111,15 +109,14 @@ class PreOwnedResourceCollection extends ResourceCollection
     private function seoData()
     {
         $page = Page::query()
-            ->whereHas('tenant', fn($query) => $query->where('slug', config('services.tenant_slug')))
+            ->whereHas('tenant', fn ($query) => $query->where('slug', config('services.tenant_slug')))
             ->where('slug', 'used-device')
             ->select(['id', 'slug', 'title', 'description', 'tags', 'primary_logo', 'shop_banner', 'info_banner', 'tenant_id'])
             ->first();
 
-        if (!$page) {
+        if (! $page) {
             return null;
         }
-
 
         $seo = DB::table('seo')
             ->where('model_id', $page->id)
@@ -132,24 +129,24 @@ class PreOwnedResourceCollection extends ResourceCollection
             'title' => $seo->title,
             'description' => $seo->description,
             'tags' => $seo->tags,
-            'canonical' => config('services.front_base_url') . '/' . $page->slug,
+            'canonical' => config('services.front_base_url').'/'.$page->slug,
             'logo' => $page->primary_logo ?? null,
             'banner' => $page->shop_banner ?? null,
             'info_banner' => $page->info_banner ?? null,
             'siteName' => config('app.name'),
-            'long_description' => $page->description
+            'long_description' => $page->description,
         ] : null;
     }
 
     private function buildPagination(): array
     {
         return [
-            'total'         => $this->resource->total(),
-            'per_page'      => $this->resource->perPage(),
-            'current_page'  => $this->resource->currentPage(),
-            'last_page'     => $this->resource->lastPage(),
-            'from'          => $this->resource->firstItem(),
-            'to'            => $this->resource->lastItem(),
+            'total' => $this->resource->total(),
+            'per_page' => $this->resource->perPage(),
+            'current_page' => $this->resource->currentPage(),
+            'last_page' => $this->resource->lastPage(),
+            'from' => $this->resource->firstItem(),
+            'to' => $this->resource->lastItem(),
             'next_page_url' => $this->resource->nextPageUrl(),
             'prev_page_url' => $this->resource->previousPageUrl(),
         ];

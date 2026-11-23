@@ -13,8 +13,8 @@ use Illuminate\Http\Request;
 class PreOwnedController extends Controller
 {
     public function __construct(
-        private PreOwnedService $preOwnedService,
-        private PageSeoService $pageSeo,
+        private readonly PreOwnedService $preOwnedService,
+        private readonly PageSeoService $pageSeo,
     ) {}
 
     public function index(Request $request): JsonResponse

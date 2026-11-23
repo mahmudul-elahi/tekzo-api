@@ -9,9 +9,9 @@ use Illuminate\Support\Collection;
 
 class ProductSearchService
 {
-    private const MIN_QUERY_LENGTH = 2;
+    private const int MIN_QUERY_LENGTH = 2;
 
-    public function __construct(private ProductRepository $products) {}
+    public function __construct(private readonly ProductRepository $products) {}
 
     /**
      * Search-as-you-type suggestions, or null when the query is too short.

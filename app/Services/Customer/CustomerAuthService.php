@@ -4,6 +4,8 @@ namespace App\Services\Customer;
 
 use App\Exceptions\GeneralException;
 use App\Mail\Customer\EmailVerifyRequestMail;
+use App\Models\Contact\Contact;
+use App\Models\Customer\VerificationCode;
 use App\Repositories\Customer\ContactRepository;
 use App\Repositories\Customer\VerificationCodeRepository;
 use Illuminate\Support\Facades\Cache;
@@ -15,11 +17,11 @@ use Illuminate\Validation\ValidationException;
 class CustomerAuthService
 {
     /** Failed OTP attempts before the code is discarded. */
-    private const MAX_OTP_ATTEMPTS = 5;
+    private const int MAX_OTP_ATTEMPTS = 5;
 
     public function __construct(
-        private ContactRepository $contacts,
-        private VerificationCodeRepository $codes,
+        private readonly ContactRepository $contacts,
+        private readonly VerificationCodeRepository $codes,
     ) {}
 
     /**
@@ -31,7 +33,7 @@ class CustomerAuthService
     {
         $customer = $this->contacts->findByEmail($email);
 
-        if (! $customer || ! Hash::check($password, $customer->password)) {
+        if (! $customer instanceof Contact || ! Hash::check($password, $customer->password)) {
             throw ValidationException::withMessages([
                 'password' => ['Incorrect your password'],
             ]);
@@ -87,7 +89,7 @@ class CustomerAuthService
     {
         $verification = $this->codes->findForEmail($email);
 
-        if (! $verification) {
+        if (! $verification instanceof VerificationCode) {
             throw new GeneralException('No OTP request found for this email', 404);
         }
 
@@ -116,7 +118,7 @@ class CustomerAuthService
     {
         $verification = $this->codes->findForEmail($email);
 
-        if (! $verification) {
+        if (! $verification instanceof VerificationCode) {
             throw new GeneralException('No OTP request found for this email', 404);
         }
 
@@ -141,7 +143,7 @@ class CustomerAuthService
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-            throw new GeneralException(app()->isProduction() ? 'Failed to reset password. Please try again later.' : $e->getMessage(), 500);
+            throw new GeneralException(app()->isProduction() ? 'Failed to reset password. Please try again later.' : $e->getMessage(), 500, $e);
         }
     }
 }

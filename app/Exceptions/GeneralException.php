@@ -3,12 +3,13 @@
 namespace App\Exceptions;
 
 use Exception;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Throwable;
 
 class GeneralException extends Exception
 {
-    public function __construct($message = '', $code = 400, Throwable $previous = null)
+    public function __construct(string $message = '', int $code = 400, ?Throwable $previous = null)
     {
         parent::__construct($message, $code, $previous);
     }
@@ -18,12 +19,12 @@ class GeneralException extends Exception
         //
     }
 
-
-    public function render(Request $request): \Illuminate\Http\JsonResponse
+    public function render(Request $request): JsonResponse
     {
         if ($request->expectsJson()) {
             return responseMessage($this->getMessage(), $this->getCode());
         }
+
         return responseMessage('Bad Request', 400);
     }
 }

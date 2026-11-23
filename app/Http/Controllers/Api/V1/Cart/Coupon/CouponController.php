@@ -10,7 +10,7 @@ use Illuminate\Http\JsonResponse;
 
 class CouponController extends Controller
 {
-    public function __construct(private CouponService $couponService) {}
+    public function __construct(private readonly CouponService $couponService) {}
 
     /**
      * @throws GeneralException

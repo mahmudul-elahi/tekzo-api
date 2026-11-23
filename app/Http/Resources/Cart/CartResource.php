@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Cart;
 
+use App\Models\Coupon\NewCoupon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -21,32 +22,30 @@ class CartResource extends JsonResource
             'grandTotal' => floatval($this->grand_total),
             'couponDiscount' => floatval($this->coupon_discount ?? 0),
             'couponCode' => $this->coupon_id
-                ? \App\Models\Coupon\NewCoupon::find($this->coupon_id)?->code
+                ? NewCoupon::find($this->coupon_id)?->code
                 : null,
-            'cartItems' => $this->cartItems ? $this->cartItems->map(function ($item) {
-                return [
-                    'id' => $item->id,
-                    'isSelect' => $item->is_select,
-                    'product' => [
-                        'name' => $item->product?->product_name,
-                        'image' => $this->productImageHandel($item),
-                    ],
-                    'isPreOwned' => $item->preOwned ? true : false,
-                    'brand' => $item->product?->brand,
-                    'category' => $item->product?->category,
-                    'quantity' => $item->quantity,
-                    'discountType' => $item->discount_type,
-                    'discountAmount' => floatval($item->discount_amount ?? 0),
-                    'maxRetailPrice' => $item->preOwned ? floatval($item->preOwned->price) : floatval($item->unit_price),
-                    'total' => $this->manageDiscountPrice($item) * $item->quantity,
-                    'variant' => $item->variant ? $this->manageVariant($item->variant) : [],
-                    'giftProduct' => $item->giftProductVariant ? $this->manageGiftProduct($item->giftProductVariant) : null,
-                    'bookingAmount' => floatval($item->booking_amount ?? 0),
-                    'productCare' => $item->pre_owned_id
-                        ? ($item->preOwnedCare ? $this->manageProductCare($item->preOwnedCare) : null)
-                        : ($item->productCare  ? $this->manageProductCare($item->productCare)  : null),
-                ];
-            }) : []
+            'cartItems' => $this->cartItems ? $this->cartItems->map(fn ($item) => [
+                'id' => $item->id,
+                'isSelect' => $item->is_select,
+                'product' => [
+                    'name' => $item->product?->product_name,
+                    'image' => $this->productImageHandel($item),
+                ],
+                'isPreOwned' => (bool) $item->preOwned,
+                'brand' => $item->product?->brand,
+                'category' => $item->product?->category,
+                'quantity' => $item->quantity,
+                'discountType' => $item->discount_type,
+                'discountAmount' => floatval($item->discount_amount ?? 0),
+                'maxRetailPrice' => $item->preOwned ? floatval($item->preOwned->price) : floatval($item->unit_price),
+                'total' => $this->manageDiscountPrice($item) * $item->quantity,
+                'variant' => $item->variant ? $this->manageVariant($item->variant) : [],
+                'giftProduct' => $item->giftProductVariant ? $this->manageGiftProduct($item->giftProductVariant) : null,
+                'bookingAmount' => floatval($item->booking_amount ?? 0),
+                'productCare' => $item->pre_owned_id
+                    ? ($item->preOwnedCare ? $this->manageProductCare($item->preOwnedCare) : null)
+                    : ($item->productCare ? $this->manageProductCare($item->productCare) : null),
+            ]) : [],
         ];
     }
 
@@ -83,15 +82,14 @@ class CartResource extends JsonResource
         return $item->variant ? $this->manageVariantColorImage($item->variant) : $item->product?->product_image;
     }
 
-
     private function manageVariantColorImage($productVariant)
     {
-        $colorAttributeValue = $productVariant->attributeValues->first(fn($attr) => strtolower($attr->attribute->name) === 'color');
+        $colorAttributeValue = $productVariant->attributeValues->first(fn ($attr) => strtolower($attr->attribute->name) === 'color');
 
         $featuredImage = $colorAttributeValue
             ? $productVariant->product->images->where('attribute_value_id', $colorAttributeValue->id)
-            ->where('is_primary', true)
-            ->first()
+                ->where('is_primary', true)
+                ->first()
             : null;
 
         return $featuredImage?->image_path;
@@ -99,15 +97,13 @@ class CartResource extends JsonResource
 
     private function manageVariant($productVariant)
     {
-        return $productVariant->attributeValues->map(function ($attributeValue) use ($productVariant) {
-            return [
-                'id' => $attributeValue->id,
-                'variant_id' => $productVariant->id,
-                'sku' => $productVariant->sku,
-                'name' => $attributeValue->attribute?->name,
-                'value' => $attributeValue->value,
-            ];
-        });
+        return $productVariant->attributeValues->map(fn ($attributeValue) => [
+            'id' => $attributeValue->id,
+            'variant_id' => $productVariant->id,
+            'sku' => $productVariant->sku,
+            'name' => $attributeValue->attribute?->name,
+            'value' => $attributeValue->value,
+        ]);
     }
 
     private function manageDiscountPrice($item)
@@ -117,7 +113,8 @@ class CartResource extends JsonResource
         if ($item->discount_type) {
             if ($item->discount_type === 'percent') {
                 return $unitPrice - ($unitPrice * $item->discount_amount / 100);
-            } elseif ($item->discount_type === 'fixed') {
+            }
+            if ($item->discount_type === 'fixed') {
                 return max($unitPrice - floatval($item->discount_amount), 0);
             }
         }

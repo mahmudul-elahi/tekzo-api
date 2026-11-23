@@ -7,7 +7,7 @@ use Illuminate\Support\Collection;
 
 class FaqService
 {
-    public function __construct(private FaqRepository $faqs) {}
+    public function __construct(private readonly FaqRepository $faqs) {}
 
     /**
      * Active FAQs grouped by group_id (groups and items keep their order).

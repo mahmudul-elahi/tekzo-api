@@ -10,7 +10,7 @@ use Milon\Barcode\DNS1D;
 
 class InvoiceService
 {
-    public function __construct(private OrderRepository $orders) {}
+    public function __construct(private readonly OrderRepository $orders) {}
 
     public function findOrder(mixed $invoiceNumber): ?Order
     {
@@ -50,13 +50,9 @@ class InvoiceService
             },
         ]);
 
-        $totalDiscount = $order->orderLists->sum(function ($item) {
-            return (float) $item->discount_amount * $item->quantity ?? 0;
-        });
+        $totalDiscount = $order->orderLists->sum(fn ($item) => (float) $item->discount_amount * $item->quantity ?? 0);
 
-        $totalUnitPrice = $order->orderLists->sum(function ($item) {
-            return $item->product_price * $item->quantity;
-        });
+        $totalUnitPrice = $order->orderLists->sum(fn ($item) => $item->product_price * $item->quantity);
 
         $totalCareCharge = $order->orderLists->sum(function ($item) {
             $chargeValue = $item->productCare ? ($item->productCare->care?->value ?? 0) : 0;
@@ -70,9 +66,7 @@ class InvoiceService
             return ($item->product_price * $item->quantity) * ($chargeValue / 100);
         });
 
-        $totalPurchasePoint = $order->orderLists->sum(function ($item) {
-            return $item->purchase_point ?? 0;
-        });
+        $totalPurchasePoint = $order->orderLists->sum(fn ($item) => $item->purchase_point ?? 0);
 
         $data = [
             'taka' => public_path('asset/taka.png'),

@@ -10,7 +10,7 @@ use Illuminate\Http\JsonResponse;
 
 class WarrantyClaimController extends Controller
 {
-    public function __construct(private WarrantyClaimService $warrantyClaimService) {}
+    public function __construct(private readonly WarrantyClaimService $warrantyClaimService) {}
 
     /**
      * Public endpoint: a customer enters their IMEI/SL number + a reason and

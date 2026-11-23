@@ -10,7 +10,7 @@ class PageSeoRepository
     /**
      * The model_type the POS stores for page SEO rows.
      */
-    private const PAGE_MODEL_TYPE = 'App\Models\Pos\Page\Page';
+    private const string PAGE_MODEL_TYPE = 'App\Models\Pos\Page\Page';
 
     /**
      * A page of the current tenant (services.tenant_slug) by slug.

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Payment\Bkash;
 
 use Illuminate\Support\Str;
@@ -7,8 +9,8 @@ use Illuminate\Support\Str;
 class BkashPaymentHandler
 {
     public function __construct(
-        private readonly BkashConfig      $config,
-        private readonly BkashHttpClient  $http,
+        private readonly BkashConfig $config,
+        private readonly BkashHttpClient $http,
         private readonly BkashTokenManager $tokens,
     ) {}
 
@@ -22,13 +24,13 @@ class BkashPaymentHandler
             '/tokenized/checkout/create',
             $this->authHeaders(),
             [
-                'mode'                  => '0011',
-                'payerReference'        => $payerReference,
-                'callbackURL'           => $this->config->websiteUrl . '/api/v1/customer/bkash-callback',
-                'amount'                => $amount,
-                'currency'              => 'BDT',
-                'intent'                => 'sale',
-                'merchantInvoiceNumber' => $invoiceNumber ?: 'Inv_' . Str::random(6),
+                'mode' => '0011',
+                'payerReference' => $payerReference,
+                'callbackURL' => $this->config->websiteUrl.'/api/v1/customer/bkash-callback',
+                'amount' => $amount,
+                'currency' => 'BDT',
+                'intent' => 'sale',
+                'merchantInvoiceNumber' => $invoiceNumber ?: 'Inv_'.Str::random(6),
             ]
         );
 
@@ -61,8 +63,8 @@ class BkashPaymentHandler
     {
         return [
             'Content-Type:application/json',
-            'Authorization:' . $this->tokens->getToken(),
-            'X-APP-Key:' . $this->config->appKey,
+            'Authorization:'.$this->tokens->getToken(),
+            'X-APP-Key:'.$this->config->appKey,
         ];
     }
 }

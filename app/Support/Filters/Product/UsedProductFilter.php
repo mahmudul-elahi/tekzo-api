@@ -4,12 +4,7 @@ namespace App\Support\Filters\Product;
 
 class UsedProductFilter
 {
-    protected array $filters;
-
-    public function __construct(array $filters)
-    {
-        $this->filters = $filters;
-    }
+    public function __construct(protected array $filters) {}
 
     public function apply($query)
     {
@@ -37,6 +32,7 @@ class UsedProductFilter
             });
         }
     }
+
     private function applyStorageFilter($query)
     {
         $storage = $this->filters['storage'] ?? null;
@@ -83,10 +79,10 @@ class UsedProductFilter
         // between separate paginated requests, which can duplicate or skip a row across
         // pages (MySQL is free to return ties in a different order each time).
         match ($this->filters['sort_by'] ?? null) {
-            'price_asc'  => $query->orderBy('price', 'asc')->orderBy('id', 'asc'),
+            'price_asc' => $query->orderBy('price', 'asc')->orderBy('id', 'asc'),
             'price_desc' => $query->orderBy('price', 'desc')->orderBy('id', 'asc'),
-            'newest'     => $query->orderByDesc('created_at')->orderBy('id', 'asc'),
-            default      => $query->orderByRaw('CASE WHEN is_sold = 1 THEN 1 ELSE 0 END ASC')->orderBy('id', 'asc'),
+            'newest' => $query->orderByDesc('created_at')->orderBy('id', 'asc'),
+            default => $query->orderByRaw('CASE WHEN is_sold = 1 THEN 1 ELSE 0 END ASC')->orderBy('id', 'asc'),
         };
     }
 }

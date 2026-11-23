@@ -8,7 +8,7 @@ use Illuminate\Http\JsonResponse;
 
 class SeoController extends Controller
 {
-    public function __construct(private PageSeoService $pageSeo) {}
+    public function __construct(private readonly PageSeoService $pageSeo) {}
 
     public function seo(string $pageSlug): JsonResponse
     {

@@ -6,6 +6,7 @@ use App\Exceptions\GeneralException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Checkout\CheckoutRequest;
 use App\Jobs\Order\OrderConfirmJob;
+use App\Models\Order\Order;
 use App\Services\Order\CheckoutService;
 use App\Services\Order\OrderPaymentService;
 use Throwable;
@@ -13,8 +14,8 @@ use Throwable;
 class CheckoutController extends Controller
 {
     public function __construct(
-        private CheckoutService $checkoutService,
-        private OrderPaymentService $paymentService,
+        private readonly CheckoutService $checkoutService,
+        private readonly OrderPaymentService $paymentService,
     ) {}
 
     /**
@@ -30,7 +31,7 @@ class CheckoutController extends Controller
 
         $order = $this->checkoutService->placeOrder($customerId, $request->shipping_address_id, $request->payment_method, $request->booking_amount_only);
 
-        if (! $order) {
+        if (! $order instanceof Order) {
             return responseMessage('Cart item not found', 400);
         }
 

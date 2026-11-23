@@ -3,7 +3,9 @@
 namespace App\Services\Wishlist;
 
 use App\Exceptions\GeneralException;
+use App\Models\Product\ProductVariant;
 use App\Models\Wishlist\Wishlist;
+use App\Models\Wishlist\WishlistItem;
 use App\Repositories\Product\ProductVariantRepository;
 use App\Repositories\Wishlist\WishlistRepository;
 use App\Support\VariantDiscount;
@@ -15,8 +17,8 @@ class WishlistService
     public const MAX_QUANTITY = 10;
 
     public function __construct(
-        private WishlistRepository $wishlists,
-        private ProductVariantRepository $variants,
+        private readonly WishlistRepository $wishlists,
+        private readonly ProductVariantRepository $variants,
     ) {}
 
     public function findForDisplay(mixed $contactId): ?Wishlist
@@ -38,7 +40,7 @@ class WishlistService
 
         $variant = $this->variants->findWithPricing($variantId);
 
-        if (! $variant || ! $variant->stock) {
+        if (! $variant instanceof ProductVariant || ! $variant->stock) {
             throw new GeneralException('Stock not available', 400);
         }
 
@@ -49,7 +51,7 @@ class WishlistService
 
             $item = $this->wishlists->findItemOfVariant($wishlist, $variant->id);
 
-            if ($item) {
+            if ($item instanceof WishlistItem) {
                 $newQty = $item->quantity + $quantity;
 
                 if ($newQty > self::MAX_QUANTITY) {
@@ -85,13 +87,13 @@ class WishlistService
 
         $item = $this->wishlists->findItemOfContact($itemId, $contactId);
 
-        if (! $item) {
+        if (! $item instanceof WishlistItem) {
             throw new GeneralException('Wishlist item not found', 404);
         }
 
         $variant = $this->variants->findById($item->product_variant_id);
 
-        if (! $variant || ! $variant->stock) {
+        if (! $variant instanceof ProductVariant || ! $variant->stock) {
             throw new GeneralException('Stock not available', 400);
         }
 
@@ -109,7 +111,7 @@ class WishlistService
     {
         $item = $this->wishlists->findItemOfContact($itemId, $contactId);
 
-        if (! $item) {
+        if (! $item instanceof WishlistItem) {
             throw new GeneralException('Wishlist item not found', 404);
         }
 
@@ -128,7 +130,7 @@ class WishlistService
     {
         $item = $this->wishlists->findItemOfContact($itemId, $contactId);
 
-        if (! $item) {
+        if (! $item instanceof WishlistItem) {
             throw new GeneralException('Cart item not found', 404);
         }
 

@@ -9,7 +9,7 @@ use Illuminate\Http\JsonResponse;
 
 class ContactController extends Controller
 {
-    public function __construct(private ContactService $contactService) {}
+    public function __construct(private readonly ContactService $contactService) {}
 
     public function store(ContactRequest $request): JsonResponse
     {

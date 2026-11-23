@@ -17,8 +17,8 @@ class PreOwnedResource extends JsonResource
     {
         $product = $this->product;
         $discountPercent = $this->discount_type === 'percent' ? (float) ($this->discount_amount ?? 0) : 0;
-        $discountFixed   = $this->discount_type === 'fixed'   ? (float) ($this->discount_amount ?? 0) : 0;
-        $regularPrice    = (float) ($this->price ?? 0);
+        $discountFixed = $this->discount_type === 'fixed' ? (float) ($this->discount_amount ?? 0) : 0;
+        $regularPrice = (float) ($this->price ?? 0);
 
         return [
             'id' => $this->id,
@@ -28,18 +28,16 @@ class PreOwnedResource extends JsonResource
             'slug' => $product?->slug,
             'is_stock' => true,
             'regular_price' => $regularPrice,
-            'final_price'     => PriceCalculator::finalPrice($regularPrice, $discountPercent, $discountFixed),
+            'final_price' => PriceCalculator::finalPrice($regularPrice, $discountPercent, $discountFixed),
             'discount_amount' => PriceCalculator::discountAmount($regularPrice, $discountPercent, $discountFixed),
-            'discount_label'  => PriceCalculator::discountLabel($discountPercent, $discountFixed),
+            'discount_label' => PriceCalculator::discountLabel($discountPercent, $discountFixed),
             'is_box' => $this->box,
             'charging_time' => $this->charging_time,
             'official_service_warranty' => $this->official_service_warranty,
-            'attributes' => $this?->attributes?->map(function ($attribute) {
-                return [
-                    'name' => $attribute->attribute?->name,
-                    'value' => $attribute->attributeValue?->value,
-                ];
-            }) ?? [],
+            'attributes' => $this?->attributes?->map(fn ($attribute) => [
+                'name' => $attribute->attribute?->name,
+                'value' => $attribute->attributeValue?->value,
+            ]) ?? [],
 
             'product_image' => $this->thumbnail_image,
             'battery_health' => $this->battery_health,

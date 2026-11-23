@@ -12,14 +12,14 @@ use Illuminate\Support\Collection;
 
 class ProductService
 {
-    private const RELATED_PRODUCT_COUNT = 4;
+    private const int RELATED_PRODUCT_COUNT = 4;
 
-    private const RELATED_PRE_OWNED_COUNT = 5;
+    private const int RELATED_PRE_OWNED_COUNT = 5;
 
     public function __construct(
-        private ProductRepository $products,
-        private PreOwnedRepository $preOwneds,
-        private CouponRepository $coupons,
+        private readonly ProductRepository $products,
+        private readonly PreOwnedRepository $preOwneds,
+        private readonly CouponRepository $coupons,
     ) {}
 
     /**
@@ -30,7 +30,7 @@ class ProductService
     {
         $product = $this->products->findVisibleBySlugForDetail($slug);
 
-        if (! $product) {
+        if (! $product instanceof Product) {
             return null;
         }
 
@@ -51,7 +51,7 @@ class ProductService
     {
         $preOwned = $this->preOwneds->findForDetail($preOwnedId);
 
-        if (! $preOwned) {
+        if (! $preOwned instanceof PreOwned) {
             return null;
         }
 
@@ -71,7 +71,7 @@ class ProductService
     {
         $product = $this->products->findCategorizedBySlug($slug);
 
-        if (! $product) {
+        if (! $product instanceof Product) {
             return null;
         }
 

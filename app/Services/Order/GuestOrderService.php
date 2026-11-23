@@ -6,6 +6,9 @@ use App\Enums\StatusEnum;
 use App\Exceptions\GeneralException;
 use App\Models\Contact\Contact;
 use App\Models\Order\Order;
+use App\Models\PreOwned\PreOwned;
+use App\Models\Product\Product;
+use App\Models\Product\ProductVariant;
 use App\Repositories\Care\CareRepository;
 use App\Repositories\Coupon\CouponRepository;
 use App\Repositories\Customer\ContactRepository;
@@ -26,15 +29,15 @@ use Throwable;
 class GuestOrderService
 {
     public function __construct(
-        private ProductRepository $products,
-        private ProductVariantRepository $variants,
-        private PreOwnedRepository $preOwneds,
-        private CareRepository $cares,
-        private ContactRepository $contacts,
-        private OrderRepository $orders,
-        private OrderListRepository $orderLists,
-        private CouponRepository $coupons,
-        private CouponService $couponService,
+        private readonly ProductRepository $products,
+        private readonly ProductVariantRepository $variants,
+        private readonly PreOwnedRepository $preOwneds,
+        private readonly CareRepository $cares,
+        private readonly ContactRepository $contacts,
+        private readonly OrderRepository $orders,
+        private readonly OrderListRepository $orderLists,
+        private readonly CouponRepository $coupons,
+        private readonly CouponService $couponService,
     ) {}
 
     /**
@@ -74,7 +77,7 @@ class GuestOrderService
                     'address' => $input['address'],
                     'total_booking_amount' => (float) $totalBookingAmount,
                     'sub_total' => (float) $subTotal,
-                    'shipping_charge' => (float) $shippingCharge,
+                    'shipping_charge' => $shippingCharge,
                     'coupon_code' => $couponCode,
                     'discount_total' => (float) $couponDiscount,
                     'grand_total' => (float) $grandTotal,
@@ -98,12 +101,9 @@ class GuestOrderService
         } catch (GeneralException $e) {
             throw $e;
         } catch (\Exception $e) {
-            throw new GeneralException(
-                app()->isProduction()
-                    ? 'Failed to place order. Please try again later.'
-                    : $e->getMessage(),
-                500
-            );
+            throw new GeneralException(app()->isProduction()
+                ? 'Failed to place order. Please try again later.'
+                : $e->getMessage(), 500, $e);
         }
     }
 
@@ -159,12 +159,12 @@ class GuestOrderService
 
                 $usedDevice = $this->preOwneds->findUnsoldForUpdate($cart['pre_owned_id'], $cart['product_variant_id']);
 
-                if (! $usedDevice) {
+                if (! $usedDevice instanceof PreOwned) {
                     throw new GeneralException('This device is already sold', 400);
                 }
             }
 
-            if ($usedDevice) {
+            if ($usedDevice instanceof PreOwned) {
                 $regularPrice = (float) $usedDevice->price;
 
                 $preOwnedDiscountPercent = $usedDevice->discount_type === 'percent' ? (float) ($usedDevice->discount_amount ?? 0) : 0;
@@ -181,7 +181,7 @@ class GuestOrderService
                 if (! empty($cart['care_id'])) {
                     $preOwnedCare = $this->cares->findPreOwnedCare($cart['care_id']);
                     $carePercent = (float) ($preOwnedCare?->care?->value ?? 0);
-                    $subTotal += round(($regularPrice * 1) * $carePercent / 100, 2);
+                    $subTotal += round(($regularPrice) * $carePercent / 100, 2);
                 }
 
                 $cartItems[] = [
@@ -200,13 +200,13 @@ class GuestOrderService
             } else {
                 $product = $this->products->findById($cart['product_id']);
 
-                if (! $product) {
+                if (! $product instanceof Product) {
                     throw new GeneralException('Product not found', 400);
                 }
 
                 $variant = $this->variants->findPricedForUpdate($cart['product_variant_id']);
 
-                if (! $variant) {
+                if (! $variant instanceof ProductVariant) {
                     throw new GeneralException('Variant not found', 400);
                 }
 

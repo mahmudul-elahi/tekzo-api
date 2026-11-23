@@ -43,9 +43,7 @@ class CareerResource extends JsonResource
     {
         return array_values(
             array_filter(
-                array_map(function ($item) {
-                    return html_entity_decode(trim($item));
-                }, explode("\n", strip_tags($html)))
+                array_map(fn ($item) => html_entity_decode(trim($item)), explode("\n", strip_tags($html)))
             )
         );
     }

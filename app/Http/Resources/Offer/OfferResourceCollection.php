@@ -14,22 +14,20 @@ class OfferResourceCollection extends ResourceCollection
      *
      * @return array<int|string, mixed>
      */
-    public static $wrap = null;
+    public static $wrap;
 
     public function toArray(Request $request): array
     {
         return [
-            'offers' => $this->collection->map(function ($data) {
-                return [
-                    'id' => $data->id,
-                    'title' => $data->title,
-                    'slug' => $data->slug,
-                    'description' => $data->description,
-                    'banner' => $data->banner,
-                    'start_at' => $data->start_at,
-                    'end_at' => $data->end_at,
-                ];
-            }),
+            'offers' => $this->collection->map(fn ($data) => [
+                'id' => $data->id,
+                'title' => $data->title,
+                'slug' => $data->slug,
+                'description' => $data->description,
+                'banner' => $data->banner,
+                'start_at' => $data->start_at,
+                'end_at' => $data->end_at,
+            ]),
             'seoData' => $this->getPageWithSeo('offer'),
             'pagination' => [
                 'total' => $this->resource->total(),
@@ -47,15 +45,14 @@ class OfferResourceCollection extends ResourceCollection
     protected function getPageWithSeo(string $slug)
     {
         $page = Page::query()
-            ->whereHas('tenant', fn($query) => $query->where('slug', config('services.tenant_slug')))
+            ->whereHas('tenant', fn ($query) => $query->where('slug', config('services.tenant_slug')))
             ->where('slug', $slug)
             ->select(['id', 'title', 'slug', 'description', 'tags', 'tenant_id', 'primary_logo', 'shop_banner', 'info_banner'])
             ->first();
 
-        if (!$page) {
+        if (! $page) {
             return null;
         }
-
 
         $seo = Seo::query()
             ->where('model_id', $page->id)
@@ -63,7 +60,7 @@ class OfferResourceCollection extends ResourceCollection
             ->where('tenant_id', $page->tenant_id)
             ->first();
 
-        if (!$seo) {
+        if (! $seo) {
             return null;
         }
 
@@ -72,7 +69,7 @@ class OfferResourceCollection extends ResourceCollection
             'description' => $seo->description,
             'page_description' => $page->description ?? null,
             'tags' => $seo->tags,
-            'canonical' => config('services.front_base_url') . '/shop/offer',
+            'canonical' => config('services.front_base_url').'/shop/offer',
             'ogImage' => $page->primary_logo,
             'banner' => $page->shop_banner,
             'info_banner' => $page->info_banner,

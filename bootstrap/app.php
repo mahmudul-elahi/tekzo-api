@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Http\Middleware\ForceJsonResponse;
 use App\Http\Middleware\ReplaceCdnUrl;
 use Illuminate\Auth\AuthenticationException;
@@ -17,12 +19,13 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // Force JSON response for all /api/* routes
-        $middleware->api(prepend: [
-            ForceJsonResponse::class,
-            ReplaceCdnUrl::class,
-        ], append: [
+        $middleware->api(append: [
             'throttle:api',
-        ]);
+        ],
+            prepend: [
+                ForceJsonResponse::class,
+                ReplaceCdnUrl::class,
+            ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->render(function (AuthenticationException $e, Request $request) {

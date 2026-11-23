@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 // Bkash configuration
 $base_url = env('BKASH_SANDBOX') ? 'https://tokenized.sandbox.bka.sh/v1.2.0-beta' : 'https://tokenized.pay.bka.sh/v1.2.0-beta';
 
@@ -8,5 +11,5 @@ return [
     'app_key' => env('BKASH_APP_KEY'),
     'app_secret' => env('BKASH_APP_SECRET'),
     'baseUrl' => $base_url,
-    'websiteUrl' => env('APP_URL')
+    'websiteUrl' => env('APP_URL'),
 ];

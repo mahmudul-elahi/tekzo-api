@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V1\Outlet;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Outlet\OutletResource;
+use App\Models\Outlet\Outlet;
 use App\Services\Outlet\OutletService;
 use App\Services\Seo\PageSeoService;
 use Illuminate\Http\JsonResponse;
@@ -11,8 +14,8 @@ use Illuminate\Http\JsonResponse;
 class OutletController extends Controller
 {
     public function __construct(
-        private OutletService $outletService,
-        private PageSeoService $pageSeo,
+        private readonly OutletService $outletService,
+        private readonly PageSeoService $pageSeo,
     ) {}
 
     public function index(): JsonResponse
@@ -27,7 +30,7 @@ class OutletController extends Controller
     {
         $outlet = $this->outletService->findActive($slug);
 
-        if (! $outlet) {
+        if (! $outlet instanceof Outlet) {
             return errorResponse('Outlet not found', 404);
         }
 

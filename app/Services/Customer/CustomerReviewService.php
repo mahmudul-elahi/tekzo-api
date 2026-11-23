@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Customer;
 
 use App\Exceptions\GeneralException;
@@ -16,8 +18,8 @@ use Throwable;
 class CustomerReviewService
 {
     public function __construct(
-        private ReviewRepository $reviews,
-        private OrderListRepository $orderLists,
+        private readonly ReviewRepository $reviews,
+        private readonly OrderListRepository $orderLists,
     ) {}
 
     public function paginateForCustomer(mixed $contactId, int $perPage): LengthAwarePaginator
@@ -35,7 +37,7 @@ class CustomerReviewService
     {
         $orderList = $this->orderLists->findCompletedForContact($orderDetailId, $contactId);
 
-        if (! $orderList) {
+        if (! $orderList instanceof OrderList) {
             throw new GeneralException('Order not found', 404);
         }
 
@@ -44,17 +46,14 @@ class CustomerReviewService
 
             $review = $this->reviews->upsertForOrderLine($contactId, $orderList->product_id, $orderDetailId, $rating, $comment);
 
-            if ($image) {
+            if ($image instanceof UploadedFile) {
                 $review->addMedia($image)->toMediaCollection('review_images');
             }
 
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-            throw new GeneralException(
-                app()->isProduction() ? 'Failed to submit review' : $e->getMessage(),
-                500
-            );
+            throw new GeneralException(app()->isProduction() ? 'Failed to submit review' : $e->getMessage(), 500, $e);
         }
     }
 

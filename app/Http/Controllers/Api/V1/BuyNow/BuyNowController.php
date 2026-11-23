@@ -19,9 +19,9 @@ use Throwable;
 class BuyNowController extends Controller
 {
     public function __construct(
-        private GuestOrderService $guestOrderService,
-        private OrderPaymentService $paymentService,
-        private PaymentCallbackService $callbackService,
+        private readonly GuestOrderService $guestOrderService,
+        private readonly OrderPaymentService $paymentService,
+        private readonly PaymentCallbackService $callbackService,
     ) {}
 
     /**

@@ -39,7 +39,7 @@ class PreOwnedCardResource extends JsonResource
             'discount_amount' => PriceCalculator::discountAmount($regularPrice, $discountPercent, $discountFixed),
             'discount_label' => PriceCalculator::discountLabel($discountPercent, $discountFixed),
             'is_box' => $this->box,
-            'is_stock' => $this->is_sold ? false : true,
+            'is_stock' => ! (bool) $this->is_sold,
             'charging_time' => $this->charging_time,
             'official_service_warranty' => $this->official_service_warranty,
 

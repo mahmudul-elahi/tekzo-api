@@ -5,6 +5,7 @@ namespace App\Services\Customer;
 use App\Exceptions\GeneralException;
 use App\Mail\Customer\EmailVerifyRequestMail;
 use App\Models\Contact\Contact;
+use App\Models\Customer\VerificationCode;
 use App\Repositories\Customer\VerificationCodeRepository;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -16,8 +17,8 @@ use Throwable;
 class ProfileService
 {
     public function __construct(
-        private VerificationCodeRepository $codes,
-        private PhoneOtpService $phoneOtp,
+        private readonly VerificationCodeRepository $codes,
+        private readonly PhoneOtpService $phoneOtp,
     ) {}
 
     public function withEliteDetails(Contact $customer): Contact
@@ -40,7 +41,7 @@ class ProfileService
 
             $customer->update($fields);
 
-            if ($profilePicture) {
+            if ($profilePicture instanceof UploadedFile) {
                 $customer->clearMediaCollection('customer_profile_picture');
                 $customer->addMediaFromRequest('profile_picture')
                     ->toMediaCollection('customer_profile_picture');
@@ -55,10 +56,7 @@ class ProfileService
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-            throw new GeneralException(
-                app()->isProduction() ? 'Profile update failed' : $e->getMessage(),
-                500
-            );
+            throw new GeneralException(app()->isProduction() ? 'Profile update failed' : $e->getMessage(), 500, $e);
         }
     }
 
@@ -90,10 +88,7 @@ class ProfileService
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-            throw new GeneralException(
-                app()->isProduction() ? 'Email update request failed' : $e->getMessage(),
-                500
-            );
+            throw new GeneralException(app()->isProduction() ? 'Email update request failed' : $e->getMessage(), 500, $e);
         }
     }
 
@@ -106,7 +101,7 @@ class ProfileService
     {
         $record = $this->codes->findUnexpiredForEmail($email);
 
-        if (! $record || ! Hash::check($code, $record->code)) {
+        if (! $record instanceof VerificationCode || ! Hash::check($code, $record->code)) {
             throw new GeneralException('Invalid your OTP');
         }
 
@@ -139,7 +134,7 @@ class ProfileService
     {
         $record = $this->phoneOtp->findValid($phoneNumber, $code);
 
-        if (! $record) {
+        if (! $record instanceof VerificationCode) {
             throw new GeneralException('Invalid your OTP');
         }
 

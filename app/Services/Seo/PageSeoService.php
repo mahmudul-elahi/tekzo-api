@@ -11,9 +11,9 @@ use App\Repositories\Page\PageSeoRepository;
  */
 class PageSeoService
 {
-    private const PAGE_COLUMNS = ['id', 'slug', 'title', 'description', 'tags', 'primary_logo', 'shop_banner', 'info_banner', 'tenant_id'];
+    private const array PAGE_COLUMNS = ['id', 'slug', 'title', 'description', 'tags', 'primary_logo', 'shop_banner', 'info_banner', 'tenant_id'];
 
-    public function __construct(private PageSeoRepository $pages) {}
+    public function __construct(private readonly PageSeoRepository $pages) {}
 
     /**
      * SEO for shop-style pages with a fixed canonical path (shop, offers).
@@ -25,7 +25,7 @@ class PageSeoService
     {
         $page = $this->pages->findTenantPage($slug, self::PAGE_COLUMNS);
 
-        if (! $page) {
+        if (! $page instanceof Page) {
             return null;
         }
 
@@ -57,7 +57,7 @@ class PageSeoService
     {
         $page = $this->pages->findTenantPage($slug, self::PAGE_COLUMNS);
 
-        if (! $page) {
+        if (! $page instanceof Page) {
             return null;
         }
 
@@ -91,7 +91,7 @@ class PageSeoService
 
         return [
             'page' => $page,
-            'seo' => $page ? $this->pages->findSeoForPage($page) : null,
+            'seo' => $page instanceof Page ? $this->pages->findSeoForPage($page) : null,
         ];
     }
 
@@ -219,7 +219,7 @@ class PageSeoService
     {
         $page = $this->pages->findTenantPage($slug, self::PAGE_COLUMNS);
 
-        if (! $page) {
+        if (! $page instanceof Page) {
             return null;
         }
 

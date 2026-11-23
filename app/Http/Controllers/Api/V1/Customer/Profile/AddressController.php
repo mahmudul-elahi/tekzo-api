@@ -13,7 +13,7 @@ use Illuminate\Http\Request;
 
 class AddressController extends Controller
 {
-    public function __construct(private AddressService $addressService) {}
+    public function __construct(private readonly AddressService $addressService) {}
 
     public function index(): JsonResponse
     {

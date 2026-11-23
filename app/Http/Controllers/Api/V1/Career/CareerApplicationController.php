@@ -1,15 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V1\Career;
 
 use App\Http\Controllers\Controller;
+use App\Models\Career\Career;
 use App\Services\Career\CareerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class CareerApplicationController extends Controller
 {
-    public function __construct(private CareerService $careerService) {}
+    public function __construct(private readonly CareerService $careerService) {}
 
     /**
      * Validation runs after the job lookup (not in a FormRequest), so an unknown job
@@ -19,7 +22,7 @@ class CareerApplicationController extends Controller
     {
         $job = $this->careerService->findOpenPosition($slug);
 
-        if (! $job) {
+        if (! $job instanceof Career) {
             return errorResponse('Job not found', 404);
         }
 

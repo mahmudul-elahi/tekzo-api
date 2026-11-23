@@ -8,6 +8,7 @@ use App\Http\Resources\Order\CustomerOrderResource;
 use App\Http\Resources\Order\OrderDetailResource;
 use App\Http\Resources\Order\PaymentHistoryResource;
 use App\Http\Resources\Order\RecentOrderResource;
+use App\Models\Order\Order;
 use App\Services\Order\CustomerOrderService;
 use App\Services\Order\OrderPaymentService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -17,8 +18,8 @@ use Illuminate\Http\Request;
 class OrderController extends Controller
 {
     public function __construct(
-        private CustomerOrderService $orderService,
-        private OrderPaymentService $paymentService,
+        private readonly CustomerOrderService $orderService,
+        private readonly OrderPaymentService $paymentService,
     ) {}
 
     /**
@@ -48,7 +49,7 @@ class OrderController extends Controller
     {
         $order = $this->orderService->find($id, $this->customerId());
 
-        if (! $order) {
+        if (! $order instanceof Order) {
             return responseMessage('Order not found', 404);
         }
 
@@ -70,7 +71,7 @@ class OrderController extends Controller
     {
         $order = $this->orderService->find($orderId, $this->customerId(), ['contact', 'area', 'district']);
 
-        if (! $order) {
+        if (! $order instanceof Order) {
             return responseMessage('Order not found', 404);
         }
 
@@ -98,7 +99,7 @@ class OrderController extends Controller
     {
         $order = $this->orderService->find($orderId, $this->customerId());
 
-        if (! $order) {
+        if (! $order instanceof Order) {
             return responseMessage('Order not found', 404);
         }
 

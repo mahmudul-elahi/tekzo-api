@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Collection;
 
 class BlogPostRepository extends BaseRepository
 {
-    private const CARD_RELATIONS = ['category:id,name', 'author:id,name', 'tags:id,name,slug'];
+    private const array CARD_RELATIONS = ['category:id,name', 'author:id,name', 'tags:id,name,slug'];
 
     public function __construct(BlogPost $blogPost)
     {

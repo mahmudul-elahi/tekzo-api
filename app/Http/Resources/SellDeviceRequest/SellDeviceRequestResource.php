@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\SellDeviceRequest;
 
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Storage;
@@ -18,17 +19,17 @@ class SellDeviceRequestResource extends JsonResource
         return [
             'id' => $this->id,
             'ad_title' => $this->ad_title,
-            'category' => $this->whenLoaded('category', fn() => [
+            'category' => $this->whenLoaded('category', fn () => [
                 'id' => $this->category->id,
                 'name' => $this->category->name,
                 'slug' => $this->category->slug,
             ]),
-            'brand' => $this->whenLoaded('brand', fn() => $this->brand ? [
+            'brand' => $this->whenLoaded('brand', fn () => $this->brand ? [
                 'id' => $this->brand->id,
                 'name' => $this->brand->name,
                 'slug' => $this->brand->slug,
             ] : null),
-            'district' => $this->whenLoaded('newDistrict', fn() => $this->newDistrict ? [
+            'district' => $this->whenLoaded('newDistrict', fn () => $this->newDistrict ? [
                 'id' => $this->newDistrict->id,
                 'name' => $this->newDistrict->name,
             ] : null),
@@ -44,12 +45,12 @@ class SellDeviceRequestResource extends JsonResource
             'description' => $this->description,
             'phone_number' => $this->phone_number,
             'status' => $this->status,
-            'images' => $this->whenLoaded('images', fn() => $this->images->map(fn($image) => [
+            'images' => $this->whenLoaded('images', fn () => $this->images->map(fn ($image) => [
                 'id' => $image->id,
-                'url' => self::imageUrl($image->image),
+                'url' => $this->imageUrl($image->image),
                 'is_primary' => $image->is_primary,
             ])),
-            'features' => $this->whenLoaded('features', fn() => $this->features->map(fn($feature) => [
+            'features' => $this->whenLoaded('features', fn () => $this->features->map(fn ($feature) => [
                 'id' => $feature->id,
                 'feature_name' => $feature->feature_name,
                 'feature_value' => $feature->feature_value,
@@ -58,9 +59,9 @@ class SellDeviceRequestResource extends JsonResource
         ];
     }
 
-    private static function imageUrl(string $path): string
+    private function imageUrl(string $path): string
     {
-        /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
+        /** @var FilesystemAdapter $disk */
         $disk = Storage::disk(config('filesystems.default'));
 
         return to_cdn_url($disk->url($path));

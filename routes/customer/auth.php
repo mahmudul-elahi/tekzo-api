@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Http\Controllers\Api\V1\Customer\Auth\ForgotPasswordController;
 use App\Http\Controllers\Api\V1\Customer\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Customer\Auth\RegisterController;

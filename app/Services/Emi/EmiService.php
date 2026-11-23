@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Emi;
 
 use App\Repositories\Emi\EmiBankRepository;
 
 class EmiService
 {
-    public function __construct(private EmiBankRepository $banks) {}
+    public function __construct(private readonly EmiBankRepository $banks) {}
 
     /**
      * Installment plans per active bank for the given amount. The bank's charge rate is added

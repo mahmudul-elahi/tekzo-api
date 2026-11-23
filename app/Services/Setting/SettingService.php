@@ -6,6 +6,7 @@ use App\Models\Area\Area;
 use App\Models\NewDistrict\NewDistrict;
 use App\Models\PopupDialog\PopupDialog;
 use App\Models\Product\AttributeValue;
+use App\Models\Tenant\Tenant;
 use App\Repositories\Location\LocationRepository;
 use App\Repositories\PopupDialog\PopupDialogRepository;
 use App\Repositories\Product\AttributeValueRepository;
@@ -17,11 +18,11 @@ use Illuminate\Database\Eloquent\Collection;
 class SettingService
 {
     public function __construct(
-        private TenantRepository $tenants,
-        private SettingRepository $settings,
-        private LocationRepository $locations,
-        private AttributeValueRepository $attributeValues,
-        private PopupDialogRepository $popupDialogs,
+        private readonly TenantRepository $tenants,
+        private readonly SettingRepository $settings,
+        private readonly LocationRepository $locations,
+        private readonly AttributeValueRepository $attributeValues,
+        private readonly PopupDialogRepository $popupDialogs,
     ) {}
 
     /**
@@ -33,11 +34,11 @@ class SettingService
     {
         $tenant = $this->tenants->current();
 
-        if (! $tenant) {
+        if (! $tenant instanceof Tenant) {
             return null;
         }
 
-        return $this->settings->getFormattedSettings('tenant', 'App\Models\Tenant\Tenant', $tenant->id);
+        return $this->settings->getFormattedSettings('tenant', Tenant::class, $tenant->id);
     }
 
     /**

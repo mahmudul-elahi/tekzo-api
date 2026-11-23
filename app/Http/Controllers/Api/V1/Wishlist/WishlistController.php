@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V1\Wishlist;
 
 use App\Http\Controllers\Controller;
@@ -7,19 +9,20 @@ use App\Http\Requests\Wishlist\AddToWishlistRequest;
 use App\Http\Requests\Wishlist\ToggleWishlistItemRequest;
 use App\Http\Requests\Wishlist\UpdateWishlistItemRequest;
 use App\Http\Resources\Wishlist\WishlistResource;
+use App\Models\Wishlist\Wishlist;
 use App\Services\Wishlist\WishlistService;
 use Illuminate\Http\JsonResponse;
 use Throwable;
 
 class WishlistController extends Controller
 {
-    public function __construct(private WishlistService $wishlistService) {}
+    public function __construct(private readonly WishlistService $wishlistService) {}
 
     public function index(): JsonResponse
     {
         $wishlist = $this->wishlistService->findForDisplay($this->customerId());
 
-        return successResponse($wishlist ? new WishlistResource($wishlist) : []);
+        return successResponse($wishlist instanceof Wishlist ? new WishlistResource($wishlist) : []);
     }
 
     /**

@@ -9,6 +9,8 @@ use App\Http\Resources\Customer\Review\CustomerReviewResource;
 use App\Http\Resources\Customer\Review\DeliveredLineDetailResource;
 use App\Http\Resources\Customer\Review\DeliveredLineResource;
 use App\Http\Resources\Customer\Review\ReviewableOrderLineResource;
+use App\Models\Order\Order;
+use App\Models\Order\OrderList;
 use App\Services\Customer\CustomerReviewService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,7 +18,7 @@ use Throwable;
 
 class CustomerReviewController extends Controller
 {
-    public function __construct(private CustomerReviewService $reviewService) {}
+    public function __construct(private readonly CustomerReviewService $reviewService) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -50,7 +52,7 @@ class CustomerReviewController extends Controller
     {
         $order = $this->reviewService->findCompletedOrder($orderId, $this->customerId());
 
-        if (! $order) {
+        if (! $order instanceof Order) {
             return responseMessage(message: 'Order not found', code: 404);
         }
 
@@ -71,7 +73,7 @@ class CustomerReviewController extends Controller
     {
         $orderList = $this->reviewService->findDeliveredLine($orderListId, $this->customerId());
 
-        if (! $orderList) {
+        if (! $orderList instanceof OrderList) {
             return responseMessage(message: 'Product not found', code: 404);
         }
 

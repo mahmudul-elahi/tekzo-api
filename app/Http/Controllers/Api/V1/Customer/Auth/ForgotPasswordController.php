@@ -12,7 +12,7 @@ use Illuminate\Http\JsonResponse;
 
 class ForgotPasswordController extends Controller
 {
-    public function __construct(private CustomerAuthService $authService) {}
+    public function __construct(private readonly CustomerAuthService $authService) {}
 
     public function forgot(ForgotPasswordRequest $request): JsonResponse
     {

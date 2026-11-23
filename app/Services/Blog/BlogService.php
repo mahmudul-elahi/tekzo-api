@@ -10,9 +10,9 @@ use Illuminate\Database\Eloquent\Collection;
 
 class BlogService
 {
-    private const RELATED_COUNT = 4;
+    private const int RELATED_COUNT = 4;
 
-    public function __construct(private BlogPostRepository $posts) {}
+    public function __construct(private readonly BlogPostRepository $posts) {}
 
     public function paginatePublished(int $perPage): LengthAwarePaginator
     {
@@ -26,7 +26,7 @@ class BlogService
     {
         $blog = $this->posts->findPublishedBySlug($slug);
 
-        if (! $blog) {
+        if (! $blog instanceof BlogPost) {
             return null;
         }
 
@@ -45,7 +45,7 @@ class BlogService
     {
         $tag = $this->posts->findPublishedTagBySlug($slug);
 
-        if (! $tag) {
+        if (! $tag instanceof BlogTag) {
             return null;
         }
 

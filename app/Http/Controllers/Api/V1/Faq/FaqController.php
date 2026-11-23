@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V1\Faq;
 
 use App\Http\Controllers\Controller;
@@ -10,8 +12,8 @@ use Illuminate\Http\JsonResponse;
 class FaqController extends Controller
 {
     public function __construct(
-        private FaqService $faqService,
-        private PageSeoService $pageSeo,
+        private readonly FaqService $faqService,
+        private readonly PageSeoService $pageSeo,
     ) {}
 
     public function index(): JsonResponse

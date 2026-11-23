@@ -8,7 +8,7 @@ use Illuminate\Support\Collection;
 
 class CategoryService
 {
-    public function __construct(private CategoryRepository $categories) {}
+    public function __construct(private readonly CategoryRepository $categories) {}
 
     /**
      * @return Collection<int, Category>

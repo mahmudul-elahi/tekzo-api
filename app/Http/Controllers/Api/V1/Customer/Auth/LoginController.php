@@ -10,7 +10,7 @@ use Illuminate\Validation\ValidationException;
 
 class LoginController extends Controller
 {
-    public function __construct(private CustomerAuthService $authService) {}
+    public function __construct(private readonly CustomerAuthService $authService) {}
 
     /**
      * @throws ValidationException

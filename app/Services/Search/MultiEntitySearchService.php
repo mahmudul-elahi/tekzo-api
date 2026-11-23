@@ -10,7 +10,6 @@ use App\Models\Product\Product;
 
 class MultiEntitySearchService
 {
-
     public function search(string $query, int $limitCategories = 5, int $limitProducts = 12, int $limitBrands = 5): array
     {
         $expandedQuery = $query;
@@ -32,22 +31,18 @@ class MultiEntitySearchService
 
         // Ensure categories & brands from products are also included
         foreach ($products as $product) {
-            if ($product->category && !$categories->contains('id', $product->category->id) && $product->category->status == StatusEnum::Active->value) {
+            if ($product->category && ! $categories->contains('id', $product->category->id) && $product->category->status == StatusEnum::Active->value) {
                 $categories->push($product->category);
             }
-            if ($product->brand && !$brands->contains('id', $product->brand->id) && $product->brand->status == StatusEnum::Active->value) {
+            if ($product->brand && ! $brands->contains('id', $product->brand->id) && $product->brand->status == StatusEnum::Active->value) {
                 $brands->push($product->brand);
             }
         }
 
         // Apply priority sorting
-        $categories = $categories->sortByDesc(function ($c) use ($query) {
-            return $c->name === $query ? 3 : (str_contains(strtolower($c->slug), strtolower($query)) ? 2 : 1);
-        })->values();
+        $categories = $categories->sortByDesc(fn ($c) => $c->name === $query ? 3 : (str_contains(strtolower($c->slug), strtolower($query)) ? 2 : 1))->values();
 
-        $brands = $brands->sortByDesc(function ($b) use ($query) {
-            return $b->name === $query ? 3 : (str_contains(strtolower($b->slug), strtolower($query)) ? 2 : 1);
-        })->values();
+        $brands = $brands->sortByDesc(fn ($b) => $b->name === $query ? 3 : (str_contains(strtolower($b->slug), strtolower($query)) ? 2 : 1))->values();
 
         $products = $products->sortByDesc(function ($p) use ($query) {
             if (stripos($p->name, $query) !== false || stripos($p->slug, $query) !== false) {
@@ -65,14 +60,14 @@ class MultiEntitySearchService
             if ($p->brand && stripos($p->brand->name, $query) !== false) {
                 return 1;
             }
+
             return 0;
         })->values();
 
-
         return [
             'categories' => $categories,
-            'products'   => $products,
-            'brands'     => $brands,
+            'products' => $products,
+            'brands' => $brands,
         ];
     }
 }

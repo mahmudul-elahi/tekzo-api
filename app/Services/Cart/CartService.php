@@ -4,6 +4,9 @@ namespace App\Services\Cart;
 
 use App\Exceptions\GeneralException;
 use App\Models\Cart\Cart;
+use App\Models\Cart\CartItem;
+use App\Models\PreOwned\PreOwned;
+use App\Models\Product\ProductVariant;
 use App\Repositories\Cart\CartRepository;
 use App\Repositories\PreOwned\PreOwnedRepository;
 use App\Repositories\Product\ProductVariantRepository;
@@ -16,9 +19,9 @@ class CartService
     public const MAX_QUANTITY = 10;
 
     public function __construct(
-        private CartRepository $carts,
-        private ProductVariantRepository $variants,
-        private PreOwnedRepository $preOwneds,
+        private readonly CartRepository $carts,
+        private readonly ProductVariantRepository $variants,
+        private readonly PreOwnedRepository $preOwneds,
     ) {}
 
     public function findForDisplay(mixed $contactId): ?Cart
@@ -43,7 +46,7 @@ class CartService
 
             $preOwned = $this->preOwneds->findUnsoldForUpdate($preOwnedId, $variantId);
 
-            if (! $preOwned) {
+            if (! $preOwned instanceof PreOwned) {
                 throw new GeneralException('This device is already sold', 400);
             }
 
@@ -87,7 +90,7 @@ class CartService
 
             $variant = $this->variants->findWithPricingForUpdate($variantId);
 
-            if (! $variant || (! $variant->stock && ! $variant->is_prebook)) {
+            if (! $variant instanceof ProductVariant || (! $variant->stock && ! $variant->is_prebook)) {
                 throw new GeneralException('Stock not available', 400);
             }
 
@@ -101,7 +104,7 @@ class CartService
 
             $item = $this->carts->findItemOfVariant($cart, $variant->id);
 
-            if ($item) {
+            if ($item instanceof CartItem) {
                 $newQty = $item->quantity + $quantity;
 
                 if ($newQty > self::MAX_QUANTITY) {
@@ -147,13 +150,13 @@ class CartService
 
         $item = $this->carts->findItemOfContact($itemId, $contactId);
 
-        if (! $item) {
+        if (! $item instanceof CartItem) {
             throw new GeneralException('Cart item not found', 404);
         }
 
         $variant = $this->variants->findById($item->product_variant_id);
 
-        if (! $variant || ! $variant->stock) {
+        if (! $variant instanceof ProductVariant || ! $variant->stock) {
             throw new GeneralException('Stock not available', 400);
         }
 
@@ -171,7 +174,7 @@ class CartService
     {
         $item = $this->carts->findItemOfContact($itemId, $contactId);
 
-        if (! $item) {
+        if (! $item instanceof CartItem) {
             throw new GeneralException('Cart item not found', 404);
         }
 
@@ -190,7 +193,7 @@ class CartService
     {
         $item = $this->carts->findItemOfContact($itemId, $contactId);
 
-        if (! $item) {
+        if (! $item instanceof CartItem) {
             throw new GeneralException('Cart item not found', 404);
         }
 

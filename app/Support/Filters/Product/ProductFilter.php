@@ -7,12 +7,7 @@ use Illuminate\Support\Facades\DB;
 
 class ProductFilter
 {
-    protected array $filters;
-
-    public function __construct(array $filters)
-    {
-        $this->filters = $filters;
-    }
+    public function __construct(protected array $filters) {}
 
     public function apply(Builder $query): Builder
     {
@@ -31,7 +26,7 @@ class ProductFilter
         $brand = $this->filters['brand'] ?? null;
 
         if ($brand && $brand !== 'all') {
-            $query->whereHas('brand', fn($q) => $q->where('slug', $brand));
+            $query->whereHas('brand', fn ($q) => $q->where('slug', $brand));
         }
     }
 
@@ -40,7 +35,7 @@ class ProductFilter
         $category = $this->filters['category'] ?? null;
 
         if ($category && $category !== 'all') {
-            $query->whereHas('category', fn($q) => $q->where('slug', $category));
+            $query->whereHas('category', fn ($q) => $q->where('slug', $category));
         }
     }
 
@@ -49,22 +44,24 @@ class ProductFilter
     {
         $stockStatus = $this->filters['stock'] ?? null;
 
-        if (!$stockStatus || $stockStatus === 'all') return;
+        if (! $stockStatus || $stockStatus === 'all') {
+            return;
+        }
 
         // Soft-deleted variants aren't excluded automatically here (same gotcha
         // applyPriceRangeFilter/applyPriceSortFilter below already work around) —
         // without this, a product whose only "stock=true" row is soft-deleted
         // incorrectly counts as in-stock even though nothing sellable is left.
-        $activeVariant = fn($q) => $q->where('status', '1')->whereNull('deleted_at');
+        $activeVariant = fn ($q) => $q->where('status', '1')->whereNull('deleted_at');
 
         if ($stockStatus === 'in_stock') {
-            $query->whereHas('variants', fn($q) => $activeVariant($q)->where('stock', true));
+            $query->whereHas('variants', fn ($q) => $activeVariant($q)->where('stock', true));
         } elseif ($stockStatus === 'out_of_stock') {
             $query->where(function ($q) use ($activeVariant) {
                 $q->whereDoesntHave('variants', $activeVariant)
                     ->orWhere(function ($q2) use ($activeVariant) {
                         $q2->whereHas('variants', $activeVariant)
-                            ->whereDoesntHave('variants', fn($q3) => $activeVariant($q3)->where('stock', true));
+                            ->whereDoesntHave('variants', fn ($q3) => $activeVariant($q3)->where('stock', true));
                     });
             });
         }
@@ -76,14 +73,16 @@ class ProductFilter
         $minPrice = $this->filters['min_price'] ?? null;
         $maxPrice = $this->filters['max_price'] ?? null;
 
-        if ($minPrice === null && $maxPrice === null) return;
+        if ($minPrice === null && $maxPrice === null) {
+            return;
+        }
 
         $query->whereHas('variants.price', function ($q) use ($minPrice, $maxPrice) {
             if ($minPrice !== null) {
-                $q->where('max_retail_price', '>=', (float)$minPrice);
+                $q->where('max_retail_price', '>=', (float) $minPrice);
             }
             if ($maxPrice !== null) {
-                $q->where('max_retail_price', '<=', (float)$maxPrice);
+                $q->where('max_retail_price', '<=', (float) $maxPrice);
             }
         });
     }
@@ -93,7 +92,9 @@ class ProductFilter
     {
         $sortBy = $this->filters['sort_by'] ?? null;
 
-        if (!in_array($sortBy, ['price_asc', 'price_desc'])) return;
+        if (! in_array($sortBy, ['price_asc', 'price_desc'])) {
+            return;
+        }
 
         $direction = $sortBy === 'price_asc' ? 'asc' : 'desc';
 
@@ -113,7 +114,7 @@ class ProductFilter
                         WHEN variant_prices.discount_fixed > 0   THEN variant_prices.max_retail_price - variant_prices.discount_fixed
                         ELSE variant_prices.max_retail_price
                     END
-                )')
+                )'),
         ])
             ->orderByRaw('min_price IS NULL ASC')
             ->orderBy('min_price', $direction);

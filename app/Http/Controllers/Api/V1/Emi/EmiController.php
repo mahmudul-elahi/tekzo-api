@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V1\Emi;
 
 use App\Http\Controllers\Controller;
@@ -9,7 +11,7 @@ use Illuminate\Http\Request;
 
 class EmiController extends Controller
 {
-    public function __construct(private EmiService $emiService) {}
+    public function __construct(private readonly EmiService $emiService) {}
 
     public function index(Request $request): JsonResponse
     {

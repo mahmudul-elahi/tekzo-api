@@ -11,9 +11,9 @@ use App\Repositories\Product\ProductRepository;
 class ProductListingService
 {
     public function __construct(
-        private ProductRepository $products,
-        private CategoryRepository $categories,
-        private BrandRepository $brands,
+        private readonly ProductRepository $products,
+        private readonly CategoryRepository $categories,
+        private readonly BrandRepository $brands,
     ) {}
 
     public function findCategoryBanner(string $slug): ?Category
@@ -31,7 +31,7 @@ class ProductListingService
     {
         $category = $this->categories->findWithChildrenBySlug($slug);
 
-        if (! $category) {
+        if (! $category instanceof Category) {
             return null;
         }
 
@@ -62,7 +62,7 @@ class ProductListingService
     {
         $brand = $this->brands->findWithDescriptionBySlug($slug);
 
-        if (! $brand) {
+        if (! $brand instanceof Brand) {
             return null;
         }
 

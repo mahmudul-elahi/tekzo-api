@@ -38,10 +38,8 @@ class DeliveredLineResource extends JsonResource
      */
     public static function attributeNames(mixed $orderList): array
     {
-        return $orderList?->variant?->attributeValues ? $orderList->variant->attributeValues->map(function ($attributeValue) {
-            return [
-                'name' => $attributeValue->value,
-            ];
-        })->toArray() : [];
+        return $orderList?->variant?->attributeValues ? $orderList->variant->attributeValues->map(fn ($attributeValue) => [
+            'name' => $attributeValue->value,
+        ])->toArray() : [];
     }
 }

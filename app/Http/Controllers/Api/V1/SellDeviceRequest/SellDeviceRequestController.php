@@ -17,8 +17,8 @@ use Throwable;
 class SellDeviceRequestController extends Controller
 {
     public function __construct(
-        private SellDeviceRequestService $sellDeviceService,
-        private SellDeviceImageUploadService $imageUploadService,
+        private readonly SellDeviceRequestService $sellDeviceService,
+        private readonly SellDeviceImageUploadService $imageUploadService,
     ) {}
 
     public function index(Request $request): JsonResponse

@@ -6,13 +6,14 @@ use App\Exceptions\GeneralException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Guest\GuestPhoneOtpRequest;
 use App\Http\Requests\Guest\GuestPhoneVerifyRequest;
+use App\Models\Customer\VerificationCode;
 use App\Services\Customer\PhoneOtpService;
 use Illuminate\Http\JsonResponse;
 use Throwable;
 
 class GuestPhoneController extends Controller
 {
-    public function __construct(private PhoneOtpService $phoneOtp) {}
+    public function __construct(private readonly PhoneOtpService $phoneOtp) {}
 
     /**
      * @throws Throwable
@@ -34,7 +35,7 @@ class GuestPhoneController extends Controller
 
         $record = $this->phoneOtp->findValid($request->phone_number, $request->code);
 
-        if (! $record) {
+        if (! $record instanceof VerificationCode) {
             throw new GeneralException('Invalid or expired OTP');
         }
 

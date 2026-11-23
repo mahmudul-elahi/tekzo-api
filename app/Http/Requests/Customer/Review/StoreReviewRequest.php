@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Customer\Review;
 
 use Illuminate\Foundation\Http\FormRequest;

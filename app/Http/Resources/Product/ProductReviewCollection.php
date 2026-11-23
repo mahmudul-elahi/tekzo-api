@@ -15,25 +15,23 @@ class ProductReviewCollection extends ResourceCollection
     public function toArray(Request $request): array
     {
         return [
-            'data' => $this->collection->map(function ($item) {
-                return [
-                    'id' => $item->id,
-                    'rating' => $item->rating,
-                    'comment' => $item->comment,
-                    'created_at' => $item->created_at,
-                    'customer' => $item->contact ? [
-                        'id' => $item->contact->id,
-                        'name' => $item->contact->name,
-                        'profile_picture' => asset('asset/banner/all-product-banner.webp'),
-                        'attachments' => []
-                    ] : [
-                        'id' => null,
-                        'name' => $item->customer_name,
-                        'profile_picture' => null,
-                        'attachments' => []
-                    ]
-                ];
-            }),
+            'data' => $this->collection->map(fn ($item) => [
+                'id' => $item->id,
+                'rating' => $item->rating,
+                'comment' => $item->comment,
+                'created_at' => $item->created_at,
+                'customer' => $item->contact ? [
+                    'id' => $item->contact->id,
+                    'name' => $item->contact->name,
+                    'profile_picture' => asset('asset/banner/all-product-banner.webp'),
+                    'attachments' => [],
+                ] : [
+                    'id' => null,
+                    'name' => $item->customer_name,
+                    'profile_picture' => null,
+                    'attachments' => [],
+                ],
+            ]),
 
             'pagination' => [
                 'total' => $this->resource->total(),

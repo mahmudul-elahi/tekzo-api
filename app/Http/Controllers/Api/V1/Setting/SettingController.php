@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V1\Setting;
 
 use App\Http\Controllers\Controller;
@@ -10,8 +12,8 @@ use Illuminate\Http\JsonResponse;
 class SettingController extends Controller
 {
     public function __construct(
-        private SettingService $settingService,
-        private PageSeoService $pageSeo,
+        private readonly SettingService $settingService,
+        private readonly PageSeoService $pageSeo,
     ) {}
 
     /**

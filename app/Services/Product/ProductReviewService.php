@@ -2,6 +2,7 @@
 
 namespace App\Services\Product;
 
+use App\Models\Product\Product;
 use App\Models\Product\Review;
 use App\Repositories\Product\ProductRepository;
 use App\Repositories\Product\ReviewRepository;
@@ -10,8 +11,8 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 class ProductReviewService
 {
     public function __construct(
-        private ProductRepository $products,
-        private ReviewRepository $reviews,
+        private readonly ProductRepository $products,
+        private readonly ReviewRepository $reviews,
     ) {}
 
     /**
@@ -23,7 +24,7 @@ class ProductReviewService
     {
         $product = $this->products->findIdBySlug($slug);
 
-        if (! $product) {
+        if (! $product instanceof Product) {
             return null;
         }
 

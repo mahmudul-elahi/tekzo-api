@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
  */
 class PaymentCallbackService
 {
-    public function __construct(private OrderRepository $orders) {}
+    public function __construct(private readonly OrderRepository $orders) {}
 
     /**
      * Frontend URL after a successful payment. The order isn't filtered by status: the
@@ -23,7 +23,7 @@ class PaymentCallbackService
     {
         $order = $this->orders->findByTransactionId($transactionId);
 
-        if (! $order) {
+        if (! $order instanceof Order) {
             return $this->frontendUrl('/404');
         }
 
@@ -38,7 +38,7 @@ class PaymentCallbackService
         return DB::transaction(function () use ($transactionId) {
             $order = $this->orders->findByTransactionIdForUpdate($transactionId);
 
-            if (! $order) {
+            if (! $order instanceof Order) {
                 return $this->frontendUrl('/order/failed');
             }
 
@@ -64,7 +64,7 @@ class PaymentCallbackService
         return DB::transaction(function () use ($transactionId) {
             $order = $this->orders->findByTransactionIdForUpdate($transactionId);
 
-            if (! $order) {
+            if (! $order instanceof Order) {
                 return $this->frontendUrl('/order/failed');
             }
 

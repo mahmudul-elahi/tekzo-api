@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\OurTeam;
 
 use App\Models\OurTeam\OurTeam;
@@ -8,7 +10,7 @@ use Illuminate\Database\Eloquent\Collection;
 
 class OurTeamService
 {
-    public function __construct(private OurTeamRepository $members) {}
+    public function __construct(private readonly OurTeamRepository $members) {}
 
     /**
      * @return Collection<int, OurTeam>

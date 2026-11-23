@@ -19,9 +19,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Model::preventLazyLoading(! $this->app->isProduction());
 
-        RateLimiter::for('api', function (Request $request) {
-            return Limit::perMinute(120)->by($request->user()?->id ?: $request->ip());
-        });
+        RateLimiter::for('api', fn (Request $request) => Limit::perMinute(120)->by($request->user()?->id ?: $request->ip()));
 
         RateLimiter::for('auth', function (Request $request) {
             $email = (string) $request->input('email', '');
@@ -44,12 +42,8 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinutes(10, 5)->by($request->ip().'|'.$target);
         });
 
-        RateLimiter::for('public-write', function (Request $request) {
-            return Limit::perMinute(10)->by($request->ip());
-        });
+        RateLimiter::for('public-write', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
 
-        RateLimiter::for('invoice-tracking', function (Request $request) {
-            return Limit::perMinute(10)->by($request->ip());
-        });
+        RateLimiter::for('invoice-tracking', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
     }
 }

@@ -10,8 +10,8 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 class OfferService
 {
     public function __construct(
-        private OfferRepository $offers,
-        private ProductRepository $products,
+        private readonly OfferRepository $offers,
+        private readonly ProductRepository $products,
     ) {}
 
     public function paginateActive(int $perPage): LengthAwarePaginator
@@ -28,7 +28,7 @@ class OfferService
     {
         $offer = $this->offers->findActiveBySlug($slug);
 
-        if (! $offer) {
+        if (! $offer instanceof Offer) {
             return null;
         }
 

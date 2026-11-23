@@ -28,15 +28,13 @@ class BlogPostResource extends JsonResource
             ] : null,
             'author' => $this->author ? [
                 'id' => $this->author->id,
-                'name' => $this->author->name
+                'name' => $this->author->name,
             ] : null,
-            'tags' => $this->tags ? $this->tags->map(function ($tag) {
-                return [
-                    'id' => $tag->id,
-                    'name' => $tag->name,
-                    'slug' => $tag->slug,
-                ];
-            }) : [],
+            'tags' => $this->tags ? $this->tags->map(fn ($tag) => [
+                'id' => $tag->id,
+                'name' => $tag->name,
+                'slug' => $tag->slug,
+            ]) : [],
             'is_featured' => (bool) $this->is_featured,
             'is_popular' => (bool) $this->is_popular,
             'is_trending' => (bool) $this->is_trending,

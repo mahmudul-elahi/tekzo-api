@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Http\Controllers\Api\V1\Blog\BlogController;
 use App\Http\Controllers\Api\V1\Career\CareerApplicationController;
 use App\Http\Controllers\Api\V1\Career\CareerController;
@@ -23,9 +25,7 @@ use App\Http\Controllers\Api\V1\Shop\ShopController;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return responseMessage('Welcome to Salamat Innovation');
-});
+Route::get('/', fn () => responseMessage('Welcome to Salamat Innovation'));
 
 // Customer Routes
 include_route_files(__DIR__.'/customer/');

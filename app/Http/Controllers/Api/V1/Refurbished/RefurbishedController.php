@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V1\Refurbished;
 
 use App\Http\Controllers\Controller;
@@ -10,7 +12,7 @@ use Illuminate\Http\Request;
 
 class RefurbishedController extends Controller
 {
-    public function __construct(private ShopService $shopService) {}
+    public function __construct(private readonly ShopService $shopService) {}
 
     public function index(Request $request): JsonResponse
     {

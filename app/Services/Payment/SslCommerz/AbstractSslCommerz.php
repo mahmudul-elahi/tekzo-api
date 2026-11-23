@@ -5,8 +5,11 @@ namespace App\Services\Payment\SslCommerz;
 abstract class AbstractSslCommerz implements SslCommerzInterface
 {
     protected $apiUrl;
+
     protected $storeId;
+
     protected $storePassword;
+
     protected $data = [];
 
     public function setApiUrl($url)
@@ -58,7 +61,7 @@ abstract class AbstractSslCommerz implements SslCommerzInterface
             curl_setopt($handle, CURLOPT_SSL_VERIFYPEER, true);
         }
 
-        if (!empty($header)) {
+        if (! empty($header)) {
             curl_setopt($handle, CURLOPT_HTTPHEADER, $header);
         }
 
@@ -71,9 +74,9 @@ abstract class AbstractSslCommerz implements SslCommerzInterface
     public function formatResponse($response, $type = 'checkout', $pattern = 'json')
     {
         if ($pattern == 'json') {
-            $result = json_decode($response, true);
-            return $result;
+            return json_decode($response, true);
         }
+
         return $response;
     }
 

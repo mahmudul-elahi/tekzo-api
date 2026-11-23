@@ -5,6 +5,7 @@ namespace App\Services\Order;
 use App\Enums\OnlinePaymentStatusEnum;
 use App\Enums\StatusEnum;
 use App\Exceptions\GeneralException;
+use App\Models\Cart\Cart;
 use App\Models\Order\Order;
 use App\Repositories\Address\CustomerAddressRepository;
 use App\Repositories\Cart\CartRepository;
@@ -22,12 +23,12 @@ use Throwable;
 class CheckoutService
 {
     public function __construct(
-        private CartRepository $carts,
-        private CartService $cartService,
-        private CustomerAddressRepository $addresses,
-        private OrderRepository $orders,
-        private OrderListRepository $orderLists,
-        private CouponRepository $coupons,
+        private readonly CartRepository $carts,
+        private readonly CartService $cartService,
+        private readonly CustomerAddressRepository $addresses,
+        private readonly OrderRepository $orders,
+        private readonly OrderListRepository $orderLists,
+        private readonly CouponRepository $coupons,
     ) {}
 
     /**
@@ -41,7 +42,7 @@ class CheckoutService
     {
         $cart = $this->carts->findForCheckout($customerId);
 
-        if (! $cart || $cart->cartItems->isEmpty()) {
+        if (! $cart instanceof Cart || $cart->cartItems->isEmpty()) {
             return null;
         }
 
@@ -109,9 +110,9 @@ class CheckoutService
             });
         } catch (\Exception $e) {
             if (app()->environment('production')) {
-                throw new GeneralException('Checkout failed, please try again later', 500);
+                throw new GeneralException('Checkout failed, please try again later', 500, $e);
             }
-            throw new GeneralException($e->getMessage(), 500);
+            throw new GeneralException($e->getMessage(), 500, $e);
         }
     }
 }

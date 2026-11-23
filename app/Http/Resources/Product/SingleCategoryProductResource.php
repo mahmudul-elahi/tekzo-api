@@ -5,18 +5,21 @@ namespace App\Http\Resources\Product;
 use App\Http\Resources\Concerns\ResolvesProductCoupon;
 use App\Models\Seo\Seo;
 use App\Support\PriceCalculator;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class SingleCategoryProductResource extends JsonResource
 {
     use ResolvesProductCoupon;
+
     /**
      * Transform the resource into an array.
      *
      * @return array<string, mixed>
      */
-    //public static $wrap = null;
+    // public static $wrap = null;
     public function toArray(Request $request): array
     {
         return [
@@ -35,14 +38,14 @@ class SingleCategoryProductResource extends JsonResource
         ];
     }
 
-    public function getBrand(): \Illuminate\Database\Eloquent\Collection|array
+    public function getBrand(): Collection|array
     {
         $brands = $this->available_brands ?? collect();
 
         $brands->prepend([
             'id' => 0,
             'name' => 'All Products',
-            'slug' => 'all'
+            'slug' => 'all',
         ]);
 
         return $brands;
@@ -50,7 +53,7 @@ class SingleCategoryProductResource extends JsonResource
 
     private function paginationMeta(): ?array
     {
-        if (!$this->products instanceof \Illuminate\Contracts\Pagination\LengthAwarePaginator) {
+        if (! $this->products instanceof LengthAwarePaginator) {
             return null;
         }
 
@@ -77,7 +80,7 @@ class SingleCategoryProductResource extends JsonResource
                 ['percent' => $discountPercent, 'fixed' => $discountFixed] = PriceCalculator::resolveProductDiscount($product->offerProduct);
             } else {
                 $discountPercent = $price->discount_percent ?? 0;
-                $discountFixed   = $price->discount_fixed ?? 0;
+                $discountFixed = $price->discount_fixed ?? 0;
             }
 
             return [
@@ -103,39 +106,38 @@ class SingleCategoryProductResource extends JsonResource
                     $discountPercent,
                     $discountFixed
                 ),
-                'purchase_point'    => $product->purchase_point,
-                'booking_amount'    => $product->booking_amount,
+                'purchase_point' => $product->purchase_point,
+                'booking_amount' => $product->booking_amount,
                 'official_warranty' => $product->has_official_warranty,
-                'is_chinese'        => $product->is_chinese,
-                'is_unofficial'     => $product->is_unofficial,
-                'is_refurbished'    => $product->is_refurbished,
-                'is_care'           => $product->cares_count > 0 ? true : false,
-                'is_offer'          => $product->offerProduct !== null,
-                'is_stock'          => $product?->stockVariant?->stock,
-                'is_prebook'        => $product->stockVariant?->is_prebook,
-                'gift' => $product->gift_product_count > 0 ? true : false,
-                'avg_rating'      => floatval($product->reviews_avg_rating),
-                'brand'             => $product->brand,
-                'coupon'            => $this->resolveCoupon($product),
+                'is_chinese' => $product->is_chinese,
+                'is_unofficial' => $product->is_unofficial,
+                'is_refurbished' => $product->is_refurbished,
+                'is_care' => $product->cares_count > 0,
+                'is_offer' => $product->offerProduct !== null,
+                'is_stock' => $product?->stockVariant?->stock,
+                'is_prebook' => $product->stockVariant?->is_prebook,
+                'gift' => $product->gift_product_count > 0,
+                'avg_rating' => floatval($product->reviews_avg_rating),
+                'brand' => $product->brand,
+                'coupon' => $this->resolveCoupon($product),
             ];
         })->values()->toArray();
     }
 
-
     private function seoData()
     {
         $seo = Seo::query()
-            ->whereHas('tenant', fn($query) => $query->where('slug', config('services.tenant_slug')))
+            ->whereHas('tenant', fn ($query) => $query->where('slug', config('services.tenant_slug')))
             ->where('model_id', $this->id)
             ->where('model_type', 'App\Models\Landlord\Category\Category')
             ->first();
 
-        if (!$seo) {
+        if (! $seo) {
             return [
                 'title' => $this->name,
                 'description' => '',
                 'tags' => '',
-                'canonical' => config('services.front_base_url') . '/categories/' . $this->slug,
+                'canonical' => config('services.front_base_url').'/categories/'.$this->slug,
                 'ogImage' => $this->logo,
                 'siteName' => config('app.name'),
 
@@ -146,7 +148,7 @@ class SingleCategoryProductResource extends JsonResource
             'title' => $seo->title ?? $this->name,
             'description' => $seo->description,
             'tags' => $seo->tags,
-            'canonical' => config('services.front_base_url') . '/categories/' . $this->slug,
+            'canonical' => config('services.front_base_url').'/categories/'.$this->slug,
             'ogImage' => $this->logo,
             'siteName' => config('app.name'),
         ];

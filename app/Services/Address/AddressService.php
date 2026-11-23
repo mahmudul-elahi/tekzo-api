@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Collection;
 
 class AddressService
 {
-    public function __construct(private CustomerAddressRepository $addresses) {}
+    public function __construct(private readonly CustomerAddressRepository $addresses) {}
 
     /**
      * @return Collection<int, CustomerAddress>

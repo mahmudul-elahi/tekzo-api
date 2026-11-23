@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Policy;
 
 use App\Models\Widget\Widget;
@@ -8,7 +10,7 @@ use Illuminate\Database\Eloquent\Collection;
 
 class PolicyService
 {
-    public function __construct(private PolicyRepository $policies) {}
+    public function __construct(private readonly PolicyRepository $policies) {}
 
     /**
      * @return Collection<int, Widget>

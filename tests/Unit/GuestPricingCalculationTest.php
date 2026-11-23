@@ -2,10 +2,10 @@
 
 namespace Tests\Unit;
 
-use App\Http\Controllers\Api\V1\BuyNow\BuyNowController;
 use App\Models\Product\Product;
 use App\Models\Product\ProductVariant;
 use App\Models\Product\VariantPrice;
+use App\Services\Order\GuestOrderService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use ReflectionMethod;
@@ -82,9 +82,8 @@ class GuestPricingCalculationTest extends TestCase
         $price->discount_fixed = 0;
         $price->save();
 
-        $controller = new BuyNowController;
-        $method = new ReflectionMethod(BuyNowController::class, 'processCartItems');
-        $method->setAccessible(true);
+        $service = app(GuestOrderService::class);
+        $method = new ReflectionMethod(GuestOrderService::class, 'priceLines');
 
         $carts = [
             [
@@ -94,7 +93,7 @@ class GuestPricingCalculationTest extends TestCase
             ],
         ];
 
-        [$cartItems, $subTotal, $discountTotal, $totalBookingAmount] = $method->invoke($controller, $carts, false);
+        [$cartItems, $subTotal, $discountTotal, $totalBookingAmount] = $method->invoke($service, $carts, false);
 
         // Subtotal = 50,000 * 2 = 100,000
         $this->assertEquals(100000, $subTotal);
@@ -121,9 +120,8 @@ class GuestPricingCalculationTest extends TestCase
         $price->discount_fixed = 500;
         $price->save();
 
-        $controller = new BuyNowController;
-        $method = new ReflectionMethod(BuyNowController::class, 'processCartItems');
-        $method->setAccessible(true);
+        $service = app(GuestOrderService::class);
+        $method = new ReflectionMethod(GuestOrderService::class, 'priceLines');
 
         $carts = [
             [
@@ -133,7 +131,7 @@ class GuestPricingCalculationTest extends TestCase
             ],
         ];
 
-        [$cartItems, $subTotal, $discountTotal, $totalBookingAmount] = $method->invoke($controller, $carts, false);
+        [$cartItems, $subTotal, $discountTotal, $totalBookingAmount] = $method->invoke($service, $carts, false);
 
         // Subtotal = 20,000 * 3 = 60,000
         $this->assertEquals(60000, $subTotal);

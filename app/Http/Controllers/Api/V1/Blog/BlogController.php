@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V1\Blog;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Blog\BlogPostDetailResource;
 use App\Http\Resources\Blog\BlogPostResource;
+use App\Models\Blog\BlogPost;
 use App\Services\Blog\BlogService;
 use App\Services\Seo\PageSeoService;
 use Illuminate\Http\JsonResponse;
@@ -13,8 +16,8 @@ use Illuminate\Http\Request;
 class BlogController extends Controller
 {
     public function __construct(
-        private BlogService $blogService,
-        private PageSeoService $pageSeo,
+        private readonly BlogService $blogService,
+        private readonly PageSeoService $pageSeo,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -26,7 +29,7 @@ class BlogController extends Controller
     {
         $blog = $this->blogService->findPublishedForReading($slug);
 
-        if (! $blog) {
+        if (! $blog instanceof BlogPost) {
             return errorResponse('Blog post not found', 404);
         }
 
@@ -57,7 +60,7 @@ class BlogController extends Controller
     {
         $featuredBlog = $this->blogService->featured();
 
-        if (! $featuredBlog) {
+        if (! $featuredBlog instanceof BlogPost) {
             return errorResponse('No featured blog found', 404);
         }
 

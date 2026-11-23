@@ -10,6 +10,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class ProductResource extends JsonResource
 {
     use ResolvesProductCoupon;
+
     /**
      * Transform the resource into an array.
      *
@@ -23,7 +24,7 @@ class ProductResource extends JsonResource
             ['percent' => $discountPercent, 'fixed' => $discountFixed] = PriceCalculator::resolveProductDiscount($this->offerProduct);
         } else {
             $discountPercent = $price->discount_percent ?? 0;
-            $discountFixed   = $price->discount_fixed ?? 0;
+            $discountFixed = $price->discount_fixed ?? 0;
         }
 
         return [
@@ -58,21 +59,21 @@ class ProductResource extends JsonResource
             ),
             'is_stock' => $this->stockVariant?->stock,
             'is_prebook' => $this->stockVariant?->is_prebook,
-            'category' => $this->whenLoaded('category', fn() => [
+            'category' => $this->whenLoaded('category', fn () => [
                 'id' => $this->category?->id,
                 'name' => $this->category?->name,
                 'slug' => $this->category?->slug,
             ]),
-            'brand' => $this->whenLoaded('brand', fn() => [
+            'brand' => $this->whenLoaded('brand', fn () => [
                 'id' => $this->brand?->id,
                 'name' => $this->brand?->name,
                 'slug' => $this->brand?->slug,
                 'logo' => $this->brand?->primary_logo,
             ]),
-            'gift' => $this->gift_product_count > 0 ? true : false,
-            'is_care' => $this->cares_count > 0 ? true : false,
-            'avg_rating'      => floatval($this->reviews_avg_rating),
-            'coupon'       => $this->resolveCoupon(),
+            'gift' => $this->gift_product_count > 0,
+            'is_care' => $this->cares_count > 0,
+            'avg_rating' => floatval($this->reviews_avg_rating),
+            'coupon' => $this->resolveCoupon(),
         ];
     }
 }

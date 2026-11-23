@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Enums;
 
 enum StatusEnum: int
@@ -20,7 +22,6 @@ enum StatusEnum: int
     case PAID = 13;
 
     case Failed = 12;
-
 
     public function color(): string
     {

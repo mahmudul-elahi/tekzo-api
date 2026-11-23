@@ -64,12 +64,10 @@ class SingleProductResource extends JsonResource
 
     public function formattedVideos()
     {
-        return $this->videos->map(function ($video) {
-            return [
-                'id' => $video->id,
-                'video_link' => $video->video_link,
-            ];
-        });
+        return $this->videos->map(fn ($video) => [
+            'id' => $video->id,
+            'video_link' => $video->video_link,
+        ]);
     }
 
     private function formattedCares()
@@ -121,14 +119,12 @@ class SingleProductResource extends JsonResource
             return [];
         }
 
-        return $this->giftProduct->variants->map(function ($variant) {
-            return [
-                'id' => $variant->id,
-                'gift_id' => $variant->id,
-                'quantity' => $variant->qty,
-                'product' => $variant?->product,
-            ];
-        });
+        return $this->giftProduct->variants->map(fn ($variant) => [
+            'id' => $variant->id,
+            'gift_id' => $variant->id,
+            'quantity' => $variant->qty,
+            'product' => $variant?->product,
+        ]);
     }
 
     /**
@@ -342,7 +338,7 @@ class SingleProductResource extends JsonResource
         return once(function () use ($productId) {
             $variantAttributeValueIds = $this->variantAttributeValueIds();
 
-            if (empty($variantAttributeValueIds)) {
+            if ($variantAttributeValueIds === []) {
                 return collect();
             }
 

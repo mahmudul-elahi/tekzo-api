@@ -34,13 +34,11 @@ class BlogPostDetailResource extends JsonResource
                 'id' => $this->author->id,
                 'name' => $this->author->name,
             ] : null,
-            'tags' => $this->tags ? $this->tags->map(function ($tag) {
-                return [
-                    'id' => $tag->id,
-                    'name' => $tag->name,
-                    'slug' => $tag->slug,
-                ];
-            }) : [],
+            'tags' => $this->tags ? $this->tags->map(fn ($tag) => [
+                'id' => $tag->id,
+                'name' => $tag->name,
+                'slug' => $tag->slug,
+            ]) : [],
             'is_featured' => (bool) $this->is_featured,
             'is_popular' => (bool) $this->is_popular,
             'is_trending' => (bool) $this->is_trending,
@@ -50,7 +48,7 @@ class BlogPostDetailResource extends JsonResource
                 'title' => $this->meta_title ?: $this->title,
                 'description' => $this->meta_description ?: $this->excerpt,
                 'tags' => $this->meta_keywords,
-                'canonical' => config('services.front_base_url') . '/blog/' . $this->slug,
+                'canonical' => config('services.front_base_url').'/blog/'.$this->slug,
                 'ogImage' => $this->thumbnail,
                 'siteName' => config('app.name'),
             ],

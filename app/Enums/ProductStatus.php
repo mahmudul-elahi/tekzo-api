@@ -1,8 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Enums;
 
-enum ProductStatus:int {
+enum ProductStatus: int
+{
     case Inactive = 0;
     case Active = 1;
     case Pending = 2;

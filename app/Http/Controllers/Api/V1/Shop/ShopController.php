@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V1\Shop;
 
 use App\Http\Controllers\Controller;
@@ -12,8 +14,8 @@ use Illuminate\Http\Request;
 class ShopController extends Controller
 {
     public function __construct(
-        private ShopService $shopService,
-        private PageSeoService $pageSeo,
+        private readonly ShopService $shopService,
+        private readonly PageSeoService $pageSeo,
     ) {}
 
     public function index(Request $request): JsonResponse

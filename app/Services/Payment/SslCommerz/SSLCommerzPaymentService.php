@@ -3,7 +3,6 @@
 namespace App\Services\Payment\SslCommerz;
 
 use App\Enums\OnlinePaymentStatusEnum;
-use App\Services\Payment\SslCommerz\SslCommerzNotification;
 use App\Models\Order\Order;
 use App\Models\Order\OrderPaymentHistory;
 use Exception;
@@ -62,7 +61,7 @@ class SSLCommerzPaymentService
     {
         $paidAmount = $amount ?? ($order->total_booking_amount > 0 ? $order->total_booking_amount : $order->grand_total);
 
-        $order->payable_amount = $order->payable_amount + $paidAmount;
+        $order->payable_amount += $paidAmount;
         $order->due_amount = max(0, $order->due_amount - $paidAmount);
         $order->payment_status = $order->due_amount <= 0
             ? OnlinePaymentStatusEnum::Successful->value

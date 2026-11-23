@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Outlet;
 
 use App\Models\Outlet\Outlet;
@@ -8,7 +10,7 @@ use Illuminate\Database\Eloquent\Collection;
 
 class OutletService
 {
-    public function __construct(private OutletRepository $outlets) {}
+    public function __construct(private readonly OutletRepository $outlets) {}
 
     /**
      * @return Collection<int, Outlet>

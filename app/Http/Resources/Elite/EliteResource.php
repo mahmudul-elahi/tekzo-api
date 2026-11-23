@@ -7,12 +7,9 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class EliteResource extends JsonResource
 {
-    private ?int $customerPoints;
-
-    public function __construct($resource, ?int $customerPoints = null)
+    public function __construct($resource, private readonly ?int $customerPoints = null)
     {
         parent::__construct($resource);
-        $this->customerPoints = $customerPoints;
     }
 
     public function toArray(Request $request): array
@@ -22,14 +19,14 @@ class EliteResource extends JsonResource
             : null;
 
         return [
-            'id'          => $this->id,
+            'id' => $this->id,
             'status_name' => $this->status_name,
-            'tagline'     => $this->tagline,
-            'logo'        => $this->logo,
-            'banner'      => $this->banner,
-            'point'       => $this->point,
-            'benefits'    => collect($this->benefits ?? [])->map(fn($b) => [
-                'title'     => $b,
+            'tagline' => $this->tagline,
+            'logo' => $this->logo,
+            'banner' => $this->banner,
+            'point' => $this->point,
+            'benefits' => collect($this->benefits ?? [])->map(fn ($b) => [
+                'title' => $b,
                 'available' => $available,
             ])->values(),
         ];

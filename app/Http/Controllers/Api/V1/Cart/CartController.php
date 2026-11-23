@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V1\Cart;
 
 use App\Exceptions\GeneralException;
@@ -8,19 +10,20 @@ use App\Http\Requests\Cart\AddToCartRequest;
 use App\Http\Requests\Cart\ToggleCartItemRequest;
 use App\Http\Requests\Cart\UpdateCartItemRequest;
 use App\Http\Resources\Cart\CartResource;
+use App\Models\Cart\Cart;
 use App\Services\Cart\CartService;
 use Illuminate\Http\JsonResponse;
 use Throwable;
 
 class CartController extends Controller
 {
-    public function __construct(private CartService $cartService) {}
+    public function __construct(private readonly CartService $cartService) {}
 
     public function index(): JsonResponse
     {
         $cart = $this->cartService->findForDisplay($this->customerId());
 
-        return successResponse($cart ? new CartResource($cart) : []);
+        return successResponse($cart instanceof Cart ? new CartResource($cart) : []);
     }
 
     /**

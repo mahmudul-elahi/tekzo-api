@@ -14,9 +14,9 @@ class SellDeviceRequestService
 {
     public const IMAGE_FOLDER = 'sell-device-requests';
 
-    private const NON_COLUMN_FIELDS = ['images', 'remove_image_ids', 'features'];
+    private const array NON_COLUMN_FIELDS = ['images', 'remove_image_ids', 'features'];
 
-    public function __construct(private SellDeviceRequestRepository $requests) {}
+    public function __construct(private readonly SellDeviceRequestRepository $requests) {}
 
     public function paginateForContact(mixed $contactId, int $perPage): LengthAwarePaginator
     {

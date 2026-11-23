@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Order;
 
 use App\Enums\OnlinePaymentStatusEnum;
@@ -17,8 +19,8 @@ use Illuminate\Database\Eloquent\Collection;
 class CustomerOrderService
 {
     public function __construct(
-        private OrderRepository $orders,
-        private CartRepository $carts,
+        private readonly OrderRepository $orders,
+        private readonly CartRepository $carts,
     ) {}
 
     public function paginate(mixed $contactId, mixed $search, mixed $status, int $perPage): LengthAwarePaginator

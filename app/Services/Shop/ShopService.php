@@ -12,8 +12,8 @@ use Illuminate\Database\Eloquent\Collection;
 class ShopService
 {
     public function __construct(
-        private ProductRepository $products,
-        private BrandRepository $brands,
+        private readonly ProductRepository $products,
+        private readonly BrandRepository $brands,
     ) {}
 
     /**

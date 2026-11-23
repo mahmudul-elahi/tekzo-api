@@ -16,15 +16,15 @@ use Illuminate\Support\Str;
  */
 class SellDeviceImageUploadService
 {
-    private const ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'avif'];
+    private const array ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'avif'];
 
     private const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
 
-    private const CHUNK_DISK = 'local';
+    private const string CHUNK_DISK = 'local';
 
-    private const CHUNK_FOLDER = 'chunk-uploads';
+    private const string CHUNK_FOLDER = 'chunk-uploads';
 
-    private const MIME_TO_EXTENSION = [
+    private const array MIME_TO_EXTENSION = [
         'image/jpeg' => 'jpg',
         'image/png' => 'png',
         'image/webp' => 'webp',

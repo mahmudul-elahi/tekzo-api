@@ -3,6 +3,7 @@
 namespace App\Services\Coupon;
 
 use App\Exceptions\GeneralException;
+use App\Models\Cart\Cart;
 use App\Models\Coupon\NewCoupon;
 use App\Repositories\Cart\CartRepository;
 use App\Repositories\Coupon\CouponRepository;
@@ -14,9 +15,9 @@ use Illuminate\Support\Facades\DB;
 class CouponService
 {
     public function __construct(
-        private CouponRepository $coupons,
-        private CartRepository $carts,
-        private ProductRepository $products,
+        private readonly CouponRepository $coupons,
+        private readonly CartRepository $carts,
+        private readonly ProductRepository $products,
     ) {}
 
     /**
@@ -31,13 +32,13 @@ class CouponService
     {
         $cart = $this->carts->findWithItemProducts($contactId);
 
-        if (! $cart || $cart->cartItems->isEmpty()) {
+        if (! $cart instanceof Cart || $cart->cartItems->isEmpty()) {
             throw new GeneralException('Cart is empty', 400);
         }
 
         $coupon = $this->coupons->findValidByCode($code);
 
-        if (! $coupon) {
+        if (! $coupon instanceof NewCoupon) {
             throw new GeneralException('Invalid your coupon', 400);
         }
 
@@ -95,7 +96,7 @@ class CouponService
     {
         $cart = $this->carts->findForContact($contactId);
 
-        if (! $cart) {
+        if (! $cart instanceof Cart) {
             throw new GeneralException('Cart not found', 404);
         }
 
@@ -131,7 +132,7 @@ class CouponService
     {
         $coupon = $this->coupons->findValidByCode($code);
 
-        if (! $coupon) {
+        if (! $coupon instanceof NewCoupon) {
             throw new GeneralException('Invalid your coupon', 400);
         }
 

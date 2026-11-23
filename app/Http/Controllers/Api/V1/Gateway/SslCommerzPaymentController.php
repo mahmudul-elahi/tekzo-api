@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Gateway;
 
 use App\Http\Controllers\Controller;
+use App\Models\Order\Order;
 use App\Repositories\Order\OrderRepository;
 use App\Services\Payment\SslCommerz\SSLCommerzPaymentService;
 use Illuminate\Http\Request;
@@ -11,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 
 class SslCommerzPaymentController extends Controller
 {
-    public function __construct(private OrderRepository $orders) {}
+    public function __construct(private readonly OrderRepository $orders) {}
 
     /**
      * SSLCommerz IPN (Instant Payment Notification) — fired server-to-server by SSLCommerz
@@ -30,7 +31,7 @@ class SslCommerzPaymentController extends Controller
 
         $order = $this->orders->findByTransactionId($transactionId);
 
-        if (! $order) {
+        if (! $order instanceof Order) {
             Log::warning('SSLCommerz IPN: order not found', ['tran_id' => $transactionId]);
 
             return response('Order not found', 404);

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Resources\Customer\Address;
 
 use App\Services\Shipping\ShippingChargeService;
@@ -40,7 +42,7 @@ class CustomerAddressResource extends JsonResource
                 ? ShippingChargeService::resolveForArea((int) $this->new_district_id, (int) $this->area_id)
                 : null,
 
-            'contact' => $this->contact
+            'contact' => $this->contact,
         ];
     }
 }

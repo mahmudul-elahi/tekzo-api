@@ -20,11 +20,9 @@ trait BelongsToTenant
 
     protected static function currentTenantId(): ?int
     {
-        if (static::$resolvedTenantId === null) {
-            static::$resolvedTenantId = Tenant::query()
-                ->where('slug', config('services.tenant_slug'))
-                ->value('id');
-        }
+        static::$resolvedTenantId ??= Tenant::query()
+            ->where('slug', config('services.tenant_slug'))
+            ->value('id');
 
         return static::$resolvedTenantId;
     }

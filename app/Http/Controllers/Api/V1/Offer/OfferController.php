@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 
 class OfferController extends Controller
 {
-    public function __construct(private OfferService $offerService) {}
+    public function __construct(private readonly OfferService $offerService) {}
 
     public function index(Request $request): JsonResponse
     {

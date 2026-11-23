@@ -4,13 +4,16 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 class ReplaceCdnUrl
 {
-    private string $s3Base;
-    private string $cdnBase;
-    private bool $enabled;
+    private readonly string $s3Base;
+
+    private readonly string $cdnBase;
+
+    private readonly bool $enabled;
 
     public function __construct()
     {
@@ -18,7 +21,7 @@ class ReplaceCdnUrl
         $bucket = config('filesystems.disks.s3.bucket', '');
         $region = config('filesystems.disks.s3.region', '');
 
-        $this->s3Base  = "https://{$bucket}.s3.{$region}.amazonaws.com";
+        $this->s3Base = "https://{$bucket}.s3.{$region}.amazonaws.com";
         $this->cdnBase = $awsUrl;
 
         $this->enabled = $awsUrl !== '' && $awsUrl !== $this->s3Base;
@@ -41,7 +44,7 @@ class ReplaceCdnUrl
         $body = $response->getContent();
 
         // JSON-encodes forward slashes as \/ — match both forms
-        $s3Escaped  = str_replace('/', '\/', $this->s3Base);
+        $s3Escaped = str_replace('/', '\/', $this->s3Base);
         $cdnEscaped = str_replace('/', '\/', $this->cdnBase);
 
         // 3. No S3 URLs in this response → skip (fast short-circuit)
@@ -56,7 +59,7 @@ class ReplaceCdnUrl
             $body
         );
 
-        if ($response instanceof \Symfony\Component\HttpFoundation\JsonResponse) {
+        if ($response instanceof JsonResponse) {
             $response->setJson($replaced);
         } else {
             $response->setContent($replaced);

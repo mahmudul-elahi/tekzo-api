@@ -32,10 +32,10 @@ class PaymentCallbackSecurityTest extends TestCase
             $table->string('paymentId')->nullable();
             $table->string('transaction_id')->nullable();
             $table->string('invoice_number')->nullable();
-            $table->double('payable_amount', 8, 2)->default(0);
-            $table->double('due_amount', 8, 2)->default(0);
-            $table->double('grand_total', 8, 2)->default(0);
-            $table->double('total_booking_amount', 8, 2)->default(0);
+            $table->double('payable_amount')->default(0);
+            $table->double('due_amount')->default(0);
+            $table->double('grand_total')->default(0);
+            $table->double('total_booking_amount')->default(0);
             $table->json('additional_value')->nullable();
             $table->timestamps();
         });

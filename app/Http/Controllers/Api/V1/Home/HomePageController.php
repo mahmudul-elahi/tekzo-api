@@ -15,6 +15,7 @@ use App\Services\Category\CategoryService;
 use App\Services\Home\HomeService;
 use App\Services\Search\ProductSearchService;
 use App\Services\Seo\PageSeoService;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,10 +23,10 @@ use Illuminate\Http\Request;
 class HomePageController extends Controller
 {
     public function __construct(
-        private HomeService $homeService,
-        private CategoryService $categoryService,
-        private ProductSearchService $searchService,
-        private PageSeoService $pageSeo,
+        private readonly HomeService $homeService,
+        private readonly CategoryService $categoryService,
+        private readonly ProductSearchService $searchService,
+        private readonly PageSeoService $pageSeo,
     ) {}
 
     /**
@@ -139,7 +140,7 @@ class HomePageController extends Controller
     {
         $products = $this->searchService->suggestions($request->input('query', ''));
 
-        if ($products === null) {
+        if (! $products instanceof \Illuminate\Support\Collection) {
             return successResponse(['products' => []]);
         }
 
@@ -150,7 +151,7 @@ class HomePageController extends Controller
     {
         $products = $this->searchService->results($request->input('query', ''), clampPerPage($request->input('per_page'), 12, 48));
 
-        if ($products === null) {
+        if (! $products instanceof LengthAwarePaginator) {
             return successResponse([
                 'products' => [],
                 'seoData' => null,

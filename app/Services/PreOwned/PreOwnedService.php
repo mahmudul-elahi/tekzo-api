@@ -4,6 +4,7 @@ namespace App\Services\PreOwned;
 
 use App\Models\Brand\Brand;
 use App\Models\PreOwned\PreOwned;
+use App\Models\PreOwned\PreOwnedProductSeo;
 use App\Repositories\Brand\BrandRepository;
 use App\Repositories\PreOwned\PreOwnedRepository;
 use App\Repositories\Product\ProductRepository;
@@ -14,9 +15,9 @@ use Illuminate\Support\Collection as SupportCollection;
 class PreOwnedService
 {
     public function __construct(
-        private ProductRepository $products,
-        private PreOwnedRepository $preOwneds,
-        private BrandRepository $brands,
+        private readonly ProductRepository $products,
+        private readonly PreOwnedRepository $preOwneds,
+        private readonly BrandRepository $brands,
     ) {}
 
     /**
@@ -37,7 +38,7 @@ class PreOwnedService
     {
         $first = $this->preOwneds->findFirstOfProductWithBrand($productSlug);
 
-        if (! $first) {
+        if (! $first instanceof PreOwned) {
             return null;
         }
 
@@ -95,7 +96,7 @@ class PreOwnedService
             'siteName' => config('app.name'),
         ];
 
-        if (! $seo) {
+        if (! $seo instanceof PreOwnedProductSeo) {
             return array_merge($base, [
                 'description' => '',
                 'tags' => '',

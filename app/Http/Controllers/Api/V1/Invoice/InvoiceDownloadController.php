@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Invoice;
 
 use App\Http\Controllers\Controller;
+use App\Models\Order\Order;
 use App\Services\Invoice\InvoiceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -10,7 +11,7 @@ use Illuminate\Http\Response;
 
 class InvoiceDownloadController extends Controller
 {
-    public function __construct(private InvoiceService $invoiceService) {}
+    public function __construct(private readonly InvoiceService $invoiceService) {}
 
     /**
      * The invoice PDF, inline with `preview`, otherwise as a download.
@@ -25,7 +26,7 @@ class InvoiceDownloadController extends Controller
 
         $order = $this->invoiceService->findOrder($invoiceNumber);
 
-        if (! $order) {
+        if (! $order instanceof Order) {
             return responseMessage(message: 'Order not found for the provided invoice number', code: 404);
         }
 
@@ -54,7 +55,7 @@ class InvoiceDownloadController extends Controller
 
         $order = $this->invoiceService->findOrder($invoiceNumber);
 
-        if (! $order) {
+        if (! $order instanceof Order) {
             return responseMessage(message: 'Order not found for the provided invoice number', code: 404);
         }
 

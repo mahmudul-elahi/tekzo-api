@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V1\Customer\Address;
 
 use App\Http\Controllers\Controller;
@@ -8,7 +10,7 @@ use Illuminate\Http\JsonResponse;
 
 class ShippingAddressController extends Controller
 {
-    public function __construct(private AddressService $addressService) {}
+    public function __construct(private readonly AddressService $addressService) {}
 
     public function index(): JsonResponse
     {

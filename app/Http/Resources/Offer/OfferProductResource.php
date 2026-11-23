@@ -12,7 +12,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  */
 class OfferProductResource extends JsonResource
 {
-    public function __construct(mixed $resource, private Offer $offer)
+    public function __construct(mixed $resource, private readonly Offer $offer)
     {
         parent::__construct($resource);
     }
@@ -50,7 +50,7 @@ class OfferProductResource extends JsonResource
             'is_chinese' => $this->is_chinese,
             'is_unofficial' => $this->is_unofficial,
             'is_refurbished' => $this->is_refurbished,
-            'is_care' => $this->cares_count > 0 ? true : false,
+            'is_care' => $this->cares_count > 0,
             'is_offer' => $this->offerProduct !== null,
             'brand' => $this->brand,
             'avg_rating' => floatval($this->reviews_avg_rating),

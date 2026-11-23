@@ -9,7 +9,7 @@ use Illuminate\Http\JsonResponse;
 
 class EliteController extends Controller
 {
-    public function __construct(private EliteService $eliteService) {}
+    public function __construct(private readonly EliteService $eliteService) {}
 
     /**
      * Elite tiers; for a signed-in customer each tier also says whether their points reach it.

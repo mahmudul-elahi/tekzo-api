@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V1\Product;
 
 use App\Http\Controllers\Controller;
@@ -10,18 +12,23 @@ use App\Http\Resources\Product\SingleBrandProductResource;
 use App\Http\Resources\Product\SingleCategoryProductResource;
 use App\Http\Resources\Product\SinglePreOwnedProductResource;
 use App\Http\Resources\Product\SingleProductResource;
+use App\Models\Brand\Brand;
+use App\Models\Category\Category;
+use App\Models\PreOwned\PreOwned;
+use App\Models\Product\Product;
 use App\Services\Product\ProductListingService;
 use App\Services\Product\ProductReviewService;
 use App\Services\Product\ProductService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class ProductController extends Controller
 {
     public function __construct(
-        private ProductService $productService,
-        private ProductReviewService $reviewService,
-        private ProductListingService $listingService,
+        private readonly ProductService $productService,
+        private readonly ProductReviewService $reviewService,
+        private readonly ProductListingService $listingService,
     ) {}
 
     /**
@@ -34,7 +41,7 @@ class ProductController extends Controller
         if ($preOwnedId) {
             $preOwned = $this->productService->findPreOwnedDetail($preOwnedId, $request);
 
-            if (! $preOwned) {
+            if (! $preOwned instanceof PreOwned) {
                 return errorResponse([], 404);
             }
 
@@ -43,7 +50,7 @@ class ProductController extends Controller
 
         $product = $this->productService->findProductDetail($slug, $request);
 
-        if (! $product) {
+        if (! $product instanceof Product) {
             return errorResponse([], 404);
         }
 
@@ -80,7 +87,7 @@ class ProductController extends Controller
     {
         $relatedProducts = $this->productService->relatedProducts($slug);
 
-        if ($relatedProducts === null) {
+        if (! $relatedProducts instanceof Collection) {
             return errorResponse([], 404);
         }
 
@@ -95,7 +102,7 @@ class ProductController extends Controller
     {
         $category = $this->listingService->findCategoryBanner($slug);
 
-        if (! $category) {
+        if (! $category instanceof Category) {
             return errorResponse([], 404);
         }
 
@@ -116,7 +123,7 @@ class ProductController extends Controller
             'per_page' => clampPerPage($request->input('per_page'), 12, 48),
         ]);
 
-        if (! $category) {
+        if (! $category instanceof Category) {
             return errorResponse([], 404);
         }
 
@@ -134,7 +141,7 @@ class ProductController extends Controller
             'per_page' => clampPerPage($request->input('per_page'), 12, 48),
         ]);
 
-        if (! $brand) {
+        if (! $brand instanceof Brand) {
             return errorResponse([], 404);
         }
 
@@ -145,7 +152,7 @@ class ProductController extends Controller
     {
         $related = $this->productService->relatedPreOwneds($slug, $request->input('preOwnedId'));
 
-        if ($related === null) {
+        if (! $related instanceof Collection) {
             return errorResponse([], 404);
         }
 

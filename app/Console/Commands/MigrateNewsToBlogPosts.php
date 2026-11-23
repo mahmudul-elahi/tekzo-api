@@ -11,15 +11,16 @@ use Illuminate\Support\Str;
 class MigrateNewsToBlogPosts extends Command
 {
     protected $signature = 'app:migrate-news-to-blog-posts {--tenant=4}';
+
     protected $description = 'Copy News rows for a tenant into blog_posts, categorized by content, authored by user id 1';
 
-    private const AUTHOR_ID = 1;
+    private const int AUTHOR_ID = 1;
 
     /**
      * News id => blog category [slug, name]. Built by reading every tenant_id=4
      * news item's heading/description and grouping them by what they're actually about.
      */
-    private const CATEGORY_MAP = [
+    private const array CATEGORY_MAP = [
         // Store News / Announcements
         20 => 'store-news', 21 => 'store-news', 23 => 'store-news',
 
@@ -45,7 +46,7 @@ class MigrateNewsToBlogPosts extends Command
         59 => 'brand-spotlight', 60 => 'brand-spotlight',
     ];
 
-    private const CATEGORY_NAMES = [
+    private const array CATEGORY_NAMES = [
         'store-news' => 'Store News',
         'customer-stories' => 'Customer Stories',
         'buying-guides' => 'Buying Guides',
@@ -75,9 +76,10 @@ class MigrateNewsToBlogPosts extends Command
         foreach ($newsItems as $news) {
             $categorySlug = self::CATEGORY_MAP[$news->id] ?? null;
 
-            if (!$categorySlug) {
+            if (! $categorySlug) {
                 $this->warn("No category mapping for news id {$news->id}, skipping.");
                 $skipped++;
+
                 continue;
             }
 
@@ -86,6 +88,7 @@ class MigrateNewsToBlogPosts extends Command
             if (BlogPost::query()->where('slug', $slug)->exists()) {
                 $this->line("Blog post already exists for news id {$news->id} ({$slug}), skipping.");
                 $skipped++;
+
                 continue;
             }
 
@@ -120,7 +123,7 @@ class MigrateNewsToBlogPosts extends Command
         $suffix = 1;
 
         while (BlogPost::query()->where('slug', $slug)->exists()) {
-            $slug = $base . '-' . ++$suffix;
+            $slug = $base.'-'.++$suffix;
         }
 
         return $slug;

@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 
 class CareerService
 {
-    public function __construct(private CareerRepository $careers) {}
+    public function __construct(private readonly CareerRepository $careers) {}
 
     /**
      * @return Collection<int, Career>

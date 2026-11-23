@@ -51,13 +51,9 @@ class OrderConfirmJob implements ShouldQueue
                 ->withCount('giftProductVariant as total_gift_quantity');
         }]);
 
-        $totalDiscount = $order->orderLists->sum(function ($item) {
-            return (float) ($item->discount_amount ?? 0);
-        });
+        $totalDiscount = $order->orderLists->sum(fn ($item) => (float) ($item->discount_amount ?? 0));
 
-        $totalUnitPrice = $order->orderLists->sum(function ($item) {
-            return $item->product_price * $item->quantity;
-        });
+        $totalUnitPrice = $order->orderLists->sum(fn ($item) => $item->product_price * $item->quantity);
 
         $totalCareCharge = $order->orderLists->sum(function ($item) {
             $chargeValue = $item->productCare ? ($item->productCare->care?->value ?? 0) : 0;

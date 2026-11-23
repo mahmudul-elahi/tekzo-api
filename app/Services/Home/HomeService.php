@@ -22,13 +22,13 @@ use Illuminate\Database\Eloquent\Collection;
 class HomeService
 {
     public function __construct(
-        private SliderRepository $sliders,
-        private ProductRepository $products,
-        private OfferRepository $offers,
-        private BrandRepository $brands,
-        private NewsRepository $news,
-        private ReelsVideoRepository $reels,
-        private PreOwnedRepository $preOwneds,
+        private readonly SliderRepository $sliders,
+        private readonly ProductRepository $products,
+        private readonly OfferRepository $offers,
+        private readonly BrandRepository $brands,
+        private readonly NewsRepository $news,
+        private readonly ReelsVideoRepository $reels,
+        private readonly PreOwnedRepository $preOwneds,
     ) {}
 
     /**
@@ -86,7 +86,7 @@ class HomeService
     {
         $offer = $this->offers->latestActiveFlashSale();
 
-        if (! $offer) {
+        if (! $offer instanceof Offer) {
             return null;
         }
 

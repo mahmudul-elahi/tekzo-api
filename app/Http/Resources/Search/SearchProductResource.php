@@ -24,7 +24,7 @@ class SearchProductResource extends JsonResource
             ['percent' => $discountPercent, 'fixed' => $discountFixed] = PriceCalculator::resolveProductDiscount($this->offerProduct);
         } else {
             $discountPercent = $this->stockVariant?->price?->discount_percent ?? 0;
-            $discountFixed   = $this->stockVariant?->price?->discount_fixed ?? 0;
+            $discountFixed = $this->stockVariant?->price?->discount_fixed ?? 0;
         }
 
         return [
@@ -41,10 +41,10 @@ class SearchProductResource extends JsonResource
             'is_chinese' => $this->is_chinese,
             'is_unofficial' => $this->is_unofficial,
             'is_refurbished' => $this->is_refurbished,
-            'is_care' => $this->cares_count > 0 ? true : false,
+            'is_care' => $this->cares_count > 0,
             'is_offer' => $this->offerProduct !== null,
             'regular_price' => $maxRetailPrice,
-            'final_price'    => PriceCalculator::finalPrice($maxRetailPrice, $discountPercent, $discountFixed),
+            'final_price' => PriceCalculator::finalPrice($maxRetailPrice, $discountPercent, $discountFixed),
             'discount_amount' => PriceCalculator::discountAmount($maxRetailPrice, $discountPercent, $discountFixed),
             'discount_label' => PriceCalculator::discountLabel($discountPercent, $discountFixed),
             'booking_amount' => $this->booking_amount,

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Shipping;
 
 use App\Models\Area\Area;
@@ -19,8 +21,9 @@ use Illuminate\Support\Facades\DB;
  */
 class ShippingChargeService
 {
-    private const DEFAULT_SHIPPING_CHARGE_INSIDE_DHAKA = 70.0;
-    private const DEFAULT_SHIPPING_CHARGE_OUTSIDE_DHAKA = 120.0;
+    private const float DEFAULT_SHIPPING_CHARGE_INSIDE_DHAKA = 70.0;
+
+    private const float DEFAULT_SHIPPING_CHARGE_OUTSIDE_DHAKA = 120.0;
 
     public static function resolveForArea(int $districtId, int $areaId): float
     {
@@ -61,7 +64,7 @@ class ShippingChargeService
         // quietly charging nothing.
         $value = $settings[$key] ?? null;
 
-        if ($value === null || $value === '' || !is_numeric($value) || (float) $value <= 0) {
+        if ($value === null || $value === '' || ! is_numeric($value) || (float) $value <= 0) {
             return $default;
         }
 
