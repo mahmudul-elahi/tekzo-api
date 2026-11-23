@@ -9,7 +9,8 @@
     "nightwatch": false,
     "packages": [
         "spatie/laravel-medialibrary",
-        "spatie/laravel-pdf"
+        "spatie/laravel-pdf",
+        "dedoc/scramble"
     ],
     "sail": false,
     "skills": [
@@ -18,6 +19,7 @@
         "testing-best-practices",
         "scout-development",
         "tailwindcss-development",
+        "scramble-development",
         "medialibrary-development",
         "laravel-pdf"
     ]
