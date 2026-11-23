@@ -4,16 +4,21 @@ namespace App\Http\Controllers\Api\V1\Elite;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Elite\EliteResource;
-use App\Models\Elite\Elite;
+use App\Services\Elite\EliteService;
+use Illuminate\Http\JsonResponse;
 
 class EliteController extends Controller
 {
-    public function index()
-    {
-        $elites          = Elite::orderBy('point')->get();
-        $customerPoints  = auth('sanctum')->user()?->total_points;
+    public function __construct(private EliteService $eliteService) {}
 
-        $data = $elites->map(fn($elite) => new EliteResource($elite, $customerPoints));
+    /**
+     * Elite tiers; for a signed-in customer each tier also says whether their points reach it.
+     */
+    public function index(): JsonResponse
+    {
+        $customerPoints = auth('sanctum')->user()?->total_points;
+
+        $data = $this->eliteService->tiers()->map(fn ($elite) => new EliteResource($elite, $customerPoints));
 
         return successResponse($data);
     }

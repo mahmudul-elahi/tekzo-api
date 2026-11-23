@@ -3,14 +3,18 @@
 namespace App\Http\Controllers\Api\V1\OurTeam;
 
 use App\Http\Controllers\Controller;
-use App\Models\OurTeam\OurTeam;
+use App\Services\OurTeam\OurTeamService;
+use Illuminate\Database\Eloquent\Collection;
 
 class OurTeamController extends Controller
 {
-    public function index()
+    public function __construct(private OurTeamService $ourTeamService) {}
+
+    /**
+     * Returned without the usual "data" wrapper, as the frontend expects.
+     */
+    public function index(): Collection
     {
-        return OurTeam::query()
-            ->select('id', 'name', 'about', 'designation', 'profile_photo')
-            ->get();
+        return $this->ourTeamService->members();
     }
 }

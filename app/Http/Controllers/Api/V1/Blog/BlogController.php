@@ -5,59 +5,43 @@ namespace App\Http\Controllers\Api\V1\Blog;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Blog\BlogPostDetailResource;
 use App\Http\Resources\Blog\BlogPostResource;
-use App\Models\Blog\BlogPost;
-use App\Models\Blog\BlogTag;
-use App\Models\Page\Page;
-use Illuminate\Support\Facades\DB;
+use App\Services\Blog\BlogService;
+use App\Services\Seo\PageSeoService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class BlogController extends Controller
 {
-    public function index()
-    {
-        $blogs = BlogPost::query()
-            ->with(['category:id,name', 'author:id,name', 'tags:id,name,slug'])
-            ->where('is_published', true)
-            ->orderByDesc('is_pinned')
-            ->orderBy('pinned_position')
-            ->orderBy('created_at', 'desc')
-            ->orderByDesc('id')
-            ->paginate(clampPerPage(request('per_page'), 12, 48));
+    public function __construct(
+        private BlogService $blogService,
+        private PageSeoService $pageSeo,
+    ) {}
 
-        return successResponse($blogs);
+    public function index(Request $request): JsonResponse
+    {
+        return successResponse($this->blogService->paginatePublished(clampPerPage($request->input('per_page'), 12, 48)));
     }
 
-    public function show(string $slug)
+    public function show(string $slug): JsonResponse
     {
-        $blog = BlogPost::query()
-            ->with(['category:id,name,slug', 'author:id,name', 'tags:id,name,slug'])
-            ->where('is_published', true)
-            ->where('slug', $slug)
-            ->first();
+        $blog = $this->blogService->findPublishedForReading($slug);
 
         if (! $blog) {
             return errorResponse('Blog post not found', 404);
         }
 
-        $blog->increment('views');
-        $blog->setRelation('relatedBlogs', $this->relatedBlogs($blog));
-
         return successResponse(new BlogPostDetailResource($blog));
     }
 
-    public function postsByTag(string $slug)
+    public function postsByTag(string $slug, Request $request): JsonResponse
     {
-        $tag = BlogTag::query()
-            ->where('is_published', true)
-            ->where('slug', $slug)->first();
+        $result = $this->blogService->tagWithPosts($slug, clampPerPage($request->input('per_page'), 12, 48));
 
-        if (! $tag) {
+        if (! $result) {
             return errorResponse('Tag not found', 404);
         }
 
-        $posts = $tag->posts()
-            ->with(['category:id,name', 'author:id,name', 'tags:id,name,slug'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(clampPerPage(request('per_page'), 12, 48));
+        ['tag' => $tag, 'posts' => $posts] = $result;
 
         return successResponse([
             'tag' => [
@@ -69,73 +53,23 @@ class BlogController extends Controller
         ]);
     }
 
-    /**
-     * Up to 4 posts from the same category as $blog; if that category doesn't
-     * have enough, the remaining slots are filled with other random posts —
-     * same fallback pattern as ProductController::relatedProduct().
-     */
-    private function relatedBlogs(BlogPost $blog, int $limit = 4)
+    public function featuredBlog(): JsonResponse
     {
-        $withRelations = ['category:id,name', 'author:id,name', 'tags:id,name,slug'];
+        $featuredBlog = $this->blogService->featured();
 
-        $matched = BlogPost::query()
-            ->with($withRelations)
-            ->where('category_id', $blog->category_id)
-            ->where('is_published', true)
-            ->where('id', '!=', $blog->id)
-            ->inRandomOrder()
-            ->take($limit)
-            ->get();
-
-        $needed = $limit - $matched->count();
-
-        if ($needed > 0) {
-            $excludeIds = $matched->pluck('id')->push($blog->id)->toArray();
-
-            $extra = BlogPost::query()
-                ->with($withRelations)
-                ->whereNotIn('id', $excludeIds)
-                ->where('is_published', true)
-                ->inRandomOrder()
-                ->take($needed)
-                ->get();
-
-            return $matched->concat($extra);
-        }
-
-        return $matched;
-    }
-
-    public function featuredBlog()
-    {
-        $featuredBlogs = BlogPost::query()
-            ->with(['category:id,name', 'author:id,name', 'tags:id,name,slug'])
-            ->where('is_published', true)
-            ->where('is_featured', true)
-            ->orderBy('created_at', 'desc')
-            ->first();
-
-        if (! $featuredBlogs) {
+        if (! $featuredBlog) {
             return errorResponse('No featured blog found', 404);
         }
 
         return successResponse([
-            'featured_blog' => new BlogPostResource($featuredBlogs),
-            'seoData' => $this->getPageWithSeo('blog'),
+            'featured_blog' => new BlogPostResource($featuredBlog),
+            'seoData' => $this->pageSeo->forPage('blog'),
         ]);
     }
 
-    public function recentBlog()
+    public function recentBlog(): JsonResponse
     {
-        $recentBlogs = BlogPost::query()
-            ->with(['category:id,name', 'author:id,name', 'tags:id,name,slug'])
-            ->where('is_published', true)
-            ->orderByDesc('is_pinned')          // pin করাগুলো আগে
-            ->orderBy('pinned_position')        // তাদের মধ্যে আপনার ক্রম
-            ->orderBy('created_at', 'desc')     // বাকি জায়গা নতুন পোস্টে ভরে
-            ->orderByDesc('id')
-            ->take(4)
-            ->get();
+        $recentBlogs = $this->blogService->recent();
 
         if ($recentBlogs->isEmpty()) {
             return errorResponse('No recent blogs found', 404);
@@ -144,16 +78,9 @@ class BlogController extends Controller
         return successResponse(BlogPostResource::collection($recentBlogs));
     }
 
-    public function popularBlog()
+    public function popularBlog(): JsonResponse
     {
-
-        $popularBlogs = BlogPost::query()
-            ->with(['category:id,name', 'author:id,name', 'tags:id,name,slug'])
-            ->where('is_published', true)
-            ->where('is_popular', true)
-            ->orderBy('created_at', 'desc')
-            ->take(3)
-            ->get();
+        $popularBlogs = $this->blogService->popular();
 
         if ($popularBlogs->isEmpty()) {
             return errorResponse('No popular blogs found', 404);
@@ -162,53 +89,14 @@ class BlogController extends Controller
         return successResponse(BlogPostResource::collection($popularBlogs));
     }
 
-    public function trendingBlog()
+    public function trendingBlog(): JsonResponse
     {
-        $trendingBlogs = BlogPost::query()
-            ->with(['category:id,name', 'author:id,name', 'tags:id,name,slug'])
-            ->where('is_published', true)
-            ->where('is_trending', true)
-            ->orderBy('created_at', 'desc')
-            ->take(3)
-            ->get();
+        $trendingBlogs = $this->blogService->trending();
 
         if ($trendingBlogs->isEmpty()) {
             return errorResponse('No trending blogs found', 404);
         }
 
         return successResponse(BlogPostResource::collection($trendingBlogs));
-    }
-
-    protected function getPageWithSeo(string $slug)
-    {
-
-        $page = Page::query()
-            ->whereHas('tenant', fn ($query) => $query->where('slug', config('services.tenant_slug')))
-            ->where('slug', $slug)
-            ->select(['id', 'slug', 'title', 'description', 'tags', 'primary_logo', 'shop_banner', 'info_banner', 'tenant_id'])
-            ->first();
-
-        if (! $page) {
-            return null;
-        }
-
-        $seo = DB::table('seo')
-            ->where('model_id', $page->id)
-            ->where('model_type', 'App\Models\Pos\Page\Page')
-            ->where('tenant_id', $page->tenant_id)
-            ->select(['id', 'title', 'description', 'tags'])
-            ->first();
-
-        return $seo ? [
-            'title' => $seo->title,
-            'description' => $seo->description,
-            'page_description' => $page->description ?? null,
-            'tags' => $seo->tags,
-            'canonical' => config('services.front_base_url').'/'.$page->slug,
-            'logo' => $page->primary_logo ?? null,
-            'banner' => $page->shop_banner ?? null,
-            'info_banner' => $page->info_banner ?? null,
-            'siteName' => config('app.name'),
-        ] : null;
     }
 }
