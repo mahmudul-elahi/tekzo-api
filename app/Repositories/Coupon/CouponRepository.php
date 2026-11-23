@@ -2,6 +2,9 @@
 
 namespace App\Repositories\Coupon;
 
+use App\Models\Coupon\CustomerCouponLog;
+use App\Models\Coupon\NewCoupon;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -51,6 +54,53 @@ class CouponRepository
                 ELSE 3 END ASC")
             ->select('new_coupons.code', 'new_coupons.discount_type', 'new_coupons.discount_value')
             ->first();
+    }
+
+    /**
+     * An active coupon valid today, with its product scopes and usage count.
+     */
+    public function findValidByCode(string $code): ?NewCoupon
+    {
+        return NewCoupon::where('code', $code)
+            ->where('status', true)
+            ->where(fn ($q) => $q->whereNull('start_date')->orWhereDate('start_date', '<=', now()))
+            ->where(fn ($q) => $q->whereNull('end_date')->orWhereDate('end_date', '>=', now()))
+            ->with(['productScopes'])
+            ->withCount('usages')
+            ->first();
+    }
+
+    public function isUsedByContact(int $couponId, mixed $contactId): bool
+    {
+        return CustomerCouponLog::where('new_coupon_id', $couponId)
+            ->where('contact_id', $contactId)
+            ->exists();
+    }
+
+    /**
+     * Public site-wide coupons valid today, newest first.
+     *
+     * @return Collection<int, NewCoupon>
+     */
+    public function publicSiteWide(): Collection
+    {
+        return NewCoupon::where('is_public', true)
+            ->where('type', 'all')
+            ->where('status', true)
+            ->where(fn ($q) => $q->whereNull('start_date')->orWhereDate('start_date', '<=', now()))
+            ->where(fn ($q) => $q->whereNull('end_date')->orWhereDate('end_date', '>=', now()))
+            ->orderBy('id', 'desc')
+            ->get([
+                'id',
+                'code',
+                'type',
+                'discount_type',
+                'discount_value',
+                'start_date',
+                'end_date',
+                'usage_limit',
+                'min_purchase_amount',
+            ]);
     }
 
     /**

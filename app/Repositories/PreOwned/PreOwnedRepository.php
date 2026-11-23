@@ -25,6 +25,19 @@ class PreOwnedRepository extends BaseRepository
     }
 
     /**
+     * An unsold unit of the given variant, row-locked for the current transaction.
+     */
+    public function findUnsoldForUpdate(mixed $id, mixed $variantId): ?PreOwned
+    {
+        return $this->query()
+            ->where('id', $id)
+            ->where('product_variant_id', $variantId)
+            ->where('is_sold', false)
+            ->lockForUpdate()
+            ->first();
+    }
+
+    /**
      * A pre-owned item with everything the product detail page needs.
      */
     public function findForDetail(mixed $id): ?PreOwned
