@@ -5,6 +5,8 @@ namespace App\Models\Contact;
 use App\Models\Elite\ContactEliteHistory;
 use App\Models\Elite\Elite;
 use App\Models\Point\PointTransaction;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -12,27 +14,27 @@ use Laravel\Sanctum\HasApiTokens;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
+#[Fillable([
+    'name',
+    'email',
+    'phone',
+    'password',
+    'status',
+    'type',
+    'email_verified_at',
+    'phone_verified_at',
+    'last_login_at',
+    'gender',
+    'date_of_birth',
+    'profile_picture',
+    'online',
+    'total_points',
+    'elite_id',
+])]
+#[Hidden(['password'])]
 class Contact extends Authenticatable implements HasMedia
 {
     use HasApiTokens, InteractsWithMedia, Notifiable, SoftDeletes;
-
-    protected $fillable = [
-        'name',
-        'email',
-        'phone',
-        'password',
-        'status',
-        'type',
-        'email_verified_at',
-        'phone_verified_at',
-        'last_login_at',
-        'gender',
-        'date_of_birth',
-        'profile_picture',
-        'online',
-        'total_points',
-        'elite_id',
-    ];
 
     protected function casts(): array
     {
@@ -45,8 +47,6 @@ class Contact extends Authenticatable implements HasMedia
             'password' => 'hashed',
         ];
     }
-
-    protected $hidden = ['password'];
 
     public function elite()
     {

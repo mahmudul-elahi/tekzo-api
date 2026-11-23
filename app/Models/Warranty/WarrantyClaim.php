@@ -5,24 +5,24 @@ namespace App\Models\Warranty;
 use App\Models\Product\Product;
 use App\Models\Product\ProductVariant;
 use App\Models\Sale\Sale;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+#[Fillable([
+    'serial_number',
+    'product_id',
+    'product_variant_id',
+    'sale_id',
+    'reason',
+    'warranty_end_date',
+    'is_within_warranty',
+    'status',
+])]
 class WarrantyClaim extends Model
 {
     use SoftDeletes;
-
-    protected $fillable = [
-        'serial_number',
-        'product_id',
-        'product_variant_id',
-        'sale_id',
-        'reason',
-        'warranty_end_date',
-        'is_within_warranty',
-        'status',
-    ];
 
     protected $casts = [
         'warranty_end_date' => 'date',

@@ -7,43 +7,43 @@ use App\Models\Area\Area;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Contact\Contact;
 use App\Models\NewDistrict\NewDistrict;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+#[Fillable([
+    'contact_id',
+    'tenant_id',
+    'payment_method',
+    'shipping_address_id',
+    'payment_type',
+    'paymentId',
+    'transaction_id',
+    'payment_status',
+    'area_id',
+    'new_district_id',
+    'address',
+    'total_booking_amount',
+    'sub_total',
+    'discount_total',
+    'payable_amount',
+    'due_amount',
+    'shipping_charge',
+    'coupon_code',
+    'discount_amount',
+    'grand_total',
+    'invoice_number',
+    'customer_note',
+    'note',
+    'status',
+    'role',
+    'custom_value',
+    'additional_value',
+])]
 class Order extends Model
 {
     use BelongsToTenant;
-
-    protected $fillable = [
-        'contact_id',
-        'tenant_id',
-        'payment_method',
-        'shipping_address_id',
-        'payment_type',
-        'paymentId',
-        'transaction_id',
-        'payment_status',
-        'area_id',
-        'new_district_id',
-        'address',
-        'total_booking_amount',
-        'sub_total',
-        'discount_total',
-        'payable_amount',
-        'due_amount',
-        'shipping_charge',
-        'coupon_code',
-        'discount_amount',
-        'grand_total',
-        'invoice_number',
-        'customer_note',
-        'note',
-        'status',
-        'role',
-        'custom_value',
-        'additional_value',
-    ];
 
     protected static function booted(): void
     {

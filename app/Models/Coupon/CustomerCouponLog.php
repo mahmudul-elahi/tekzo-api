@@ -2,18 +2,18 @@
 
 namespace App\Models\Coupon;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+#[Fillable([
+    'new_coupon_id',
+    'contact_id',
+    'discount_amount',
+    'used_at',
+])]
 class CustomerCouponLog extends Model
 {
-    protected $fillable = [
-        'new_coupon_id',
-        'contact_id',
-        'discount_amount',
-        'used_at',
-    ];
-
     protected $casts = [
         'used_at' => 'datetime',
     ];

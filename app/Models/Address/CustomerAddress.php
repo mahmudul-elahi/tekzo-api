@@ -6,23 +6,23 @@ use App\Models\Area\Area;
 use App\Models\Contact\Contact;
 use App\Models\Customer\Customer;
 use App\Models\NewDistrict\NewDistrict;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+#[Fillable([
+    'customer_id',
+    'contact_id',
+    'new_district_id',
+    'area_id',
+    'street',
+    'label',
+    'is_default_shipping',
+    'is_default_billing',
+    'is_default',
+])]
 class CustomerAddress extends Model
 {
-    protected $fillable = [
-        'customer_id',
-        'contact_id',
-        'new_district_id',
-        'area_id',
-        'street',
-        'label',
-        'is_default_shipping',
-        'is_default_billing',
-        'is_default',
-    ];
-
     protected function casts(): array
     {
         return [

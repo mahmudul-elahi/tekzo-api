@@ -3,19 +3,19 @@
 namespace App\Models\Gift;
 
 use App\Models\Product\Product;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+#[Fillable([
+    'product_id',
+    'is_active',
+])]
 class GiftProduct extends Model
 {
     use SoftDeletes;
-    
-    protected $fillable = [
-        'product_id',
-        'is_active',
-    ];
 
     public function product(): BelongsTo
     {

@@ -4,20 +4,20 @@ namespace App\Models\Gift;
 
 use App\Models\Product\Product;
 use App\Models\Product\ProductVariant;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+#[Fillable([
+    'gift_product_id',
+    'product_id',
+    'product_variant_id',
+    'qty',
+])]
 class GiftProductVariant extends Model
 {
     use SoftDeletes;
-
-    protected $fillable = [
-        'gift_product_id',
-        'product_id',
-        'product_variant_id',
-        'qty',
-    ];
 
     public function giftProduct(): BelongsTo
     {

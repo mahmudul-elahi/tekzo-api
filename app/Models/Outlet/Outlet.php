@@ -4,7 +4,6 @@ namespace App\Models\Outlet;
 
 use App\Models\Country\Country;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class Outlet extends Model
 {
@@ -17,6 +16,4 @@ class Outlet extends Model
     {
         return $this->belongsTo(Country::class, 'country_id', 'id');
     }
-
-
 }

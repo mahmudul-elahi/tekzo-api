@@ -2,16 +2,15 @@
 
 namespace App\Models\Blog;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 
-class BlogCategory extends Model
-{
-    protected $fillable = [
-        'name',
-        'slug',
-        'icon',
-        'color',
-        'description',
-        'status',
-    ];
-}
+#[Fillable([
+    'name',
+    'slug',
+    'icon',
+    'color',
+    'description',
+    'status',
+])]
+class BlogCategory extends Model {}

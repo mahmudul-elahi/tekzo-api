@@ -2,19 +2,19 @@
 
 namespace App\Models\Brand;
 
+use App\Models\Product\LongDescription;
 use App\Models\Product\Product;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Scout\Searchable;
-use App\Models\Product\LongDescription;
 
 class Brand extends Model
 {
-    use SoftDeletes, Searchable;
+    use Searchable, SoftDeletes;
 
     public $casts = [
-        'status' => 'boolean'
+        'status' => 'boolean',
     ];
 
     public function toSearchableArray(): array
@@ -30,7 +30,6 @@ class Brand extends Model
     {
         return $this->hasMany(Product::class, 'brand_id', 'id');
     }
-
 
     public function longDescription()
     {

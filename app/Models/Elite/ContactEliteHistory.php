@@ -3,14 +3,14 @@
 namespace App\Models\Elite;
 
 use App\Models\Contact\Contact;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Model;
 
+#[Table(timestamps: false)]
+#[Fillable(['contact_id', 'elite_id', 'achieved_at'])]
 class ContactEliteHistory extends Model
 {
-    public $timestamps = false;
-
-    protected $fillable = ['contact_id', 'elite_id', 'achieved_at'];
-
     protected $casts = ['achieved_at' => 'datetime'];
 
     public function contact()

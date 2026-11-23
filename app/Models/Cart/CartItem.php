@@ -8,32 +8,33 @@ use App\Models\Gift\GiftProductVariant;
 use App\Models\PreOwned\PreOwned;
 use App\Models\Product\Product;
 use App\Models\Product\ProductVariant;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+#[Fillable([
+    'is_select',
+    'cart_id',
+    'product_id',
+    'product_variant_id',
+    'pre_owned_id',
+    'gift_product_variant_id',
+    'product_care_id',
+    'pre_owned_care_id',
+    'attributes',
+    'booking_amount',
+    'unit_price',
+    'quantity',
+    'discount_type',
+    'discount_amount',
+])]
 class CartItem extends Model
 {
-    public $fillable = [
-        'is_select',
-        'cart_id',
-        'product_id',
-        'product_variant_id',
-        'pre_owned_id',
-        'gift_product_variant_id',
-        'product_care_id',
-        'pre_owned_care_id',
-        'attributes',
-        'booking_amount',
-        'unit_price',
-        'quantity',
-        'discount_type',
-        'discount_amount',
-    ];
-
     public $casts = [
-        'is_select' => 'boolean'
+        'is_select' => 'boolean',
     ];
 
-    public function cart(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function cart(): BelongsTo
     {
         return $this->belongsTo(Cart::class);
     }

@@ -9,40 +9,41 @@ use App\Models\PreOwned\PreOwned;
 use App\Models\Product\Product;
 use App\Models\Product\ProductVariant;
 use App\Models\Product\Review;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+#[Fillable([
+    'order_id',
+    'product_id',
+    'pre_owned_id',
+    'product_variant_id',
+    'gift_product_variant_id',
+    'product_care_id',
+    'pre_owned_care_id',
+    'product_price',
+    'final_price',
+    'discount_type',
+    'discount_value',
+    'discount_amount',
+    'discount_total',
+    'quantity',
+    'purchase_point',
+    'status',
+])]
 class OrderList extends Model
 {
-    protected $fillable = [
-        'order_id',
-        'product_id',
-        'pre_owned_id',
-        'product_variant_id',
-        'gift_product_variant_id',
-        'product_care_id',
-        'pre_owned_care_id',
-        'product_price',
-        'final_price',
-        'discount_type',
-        'discount_value',
-        'discount_amount',
-        'discount_total',
-        'quantity',
-        'purchase_point',
-        'status',
-    ];
-
-    public function order(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
     }
 
-    public function product(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
     }
 
-    public function variant(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function variant(): BelongsTo
     {
         return $this->belongsTo(ProductVariant::class, 'product_variant_id', 'id');
     }

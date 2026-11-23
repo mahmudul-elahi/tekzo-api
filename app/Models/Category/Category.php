@@ -4,32 +4,32 @@ namespace App\Models\Category;
 
 use App\Models\Product\LongDescription;
 use App\Models\Product\Product;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Scout\Searchable;
 
+#[Fillable([
+    'parent_id',
+    'name',
+    'logo',
+    'secondary_logo',
+    'banner',
+    'title',
+    'status',
+    'slug',
+    'serial',
+    'tags',
+    'description',
+])]
 class Category extends Model
 {
-    use SoftDeletes, Searchable;
-
-    protected $fillable = [
-        'parent_id',
-        'name',
-        'logo',
-        'secondary_logo',
-        'banner',
-        'title',
-        'status',
-        'slug',
-        'serial',
-        'tags',
-        'description'
-    ];
+    use Searchable, SoftDeletes;
 
     public $casts = [
-        'status' => 'boolean'
+        'status' => 'boolean',
     ];
 
     public function toSearchableArray(): array
@@ -75,10 +75,10 @@ class Category extends Model
     public function ancestors(): array
     {
         $ancestors = [];
-        $category  = $this;
-        $visited   = [];
+        $category = $this;
+        $visited = [];
 
-        while ($category && !isset($visited[$category->id])) {
+        while ($category && ! isset($visited[$category->id])) {
             $visited[$category->id] = true;
             array_unshift($ancestors, $category);
             $category = $category->parent;

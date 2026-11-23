@@ -7,34 +7,34 @@ use App\Models\Brand\Brand;
 use App\Models\Category\Category;
 use App\Models\Contact\Contact;
 use App\Models\NewDistrict\NewDistrict;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+#[Fillable([
+    'contact_id',
+    'ad_title',
+    'category_id',
+    'brand_id',
+    'new_district_id',
+    'model',
+    'condition',
+    'ram',
+    'storage',
+    'color',
+    'is_exchange_possible',
+    'asking_price',
+    'is_negotiable',
+    'video_url',
+    'description',
+    'phone_number',
+    'status',
+])]
 class SellDeviceRequest extends Model
 {
     use SoftDeletes;
-
-    protected $fillable = [
-        'contact_id',
-        'ad_title',
-        'category_id',
-        'brand_id',
-        'new_district_id',
-        'model',
-        'condition',
-        'ram',
-        'storage',
-        'color',
-        'is_exchange_possible',
-        'asking_price',
-        'is_negotiable',
-        'video_url',
-        'description',
-        'phone_number',
-        'status',
-    ];
 
     protected $casts = [
         'is_exchange_possible' => 'boolean',

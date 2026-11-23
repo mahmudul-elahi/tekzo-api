@@ -5,21 +5,21 @@ namespace App\Models\Coupon;
 use App\Models\Brand\Brand;
 use App\Models\Category\Category;
 use App\Models\Product\Product;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+#[Fillable([
+    'new_coupon_id',
+    'scope_type',   // all, category, product, brand
+    'category_id',
+    'product_id',
+    'brand_id',
+])]
 class CouponProductScope extends Model
 {
     use SoftDeletes;
-
-    protected $fillable = [
-        'new_coupon_id',
-        'scope_type',   // all, category, product, brand
-        'category_id',
-        'product_id',
-        'brand_id',
-    ];
 
     public function coupon(): BelongsTo
     {

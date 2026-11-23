@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class OfferProduct extends Model
 {
-
     protected static function booted(): void
     {
         static::addGlobalScope('offerFirst', function ($query) {
@@ -22,6 +21,7 @@ class OfferProduct extends Model
             ');
         });
     }
+
     public function product()
     {
         return $this->belongsTo(Product::class, 'product_id', 'id');

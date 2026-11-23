@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Slider extends Model
 {
     use SoftDeletes;
+
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);

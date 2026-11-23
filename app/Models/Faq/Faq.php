@@ -13,8 +13,8 @@ class Faq extends Model
         return $this->belongsTo(Tenant::class);
     }
 
-     public function faqCategory(): BelongsTo
-     {
+    public function faqCategory(): BelongsTo
+    {
         return $this->belongsTo(FaqCategory::class, 'faq_category_id', 'id');
     }
 }

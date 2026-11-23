@@ -2,13 +2,12 @@
 
 namespace App\Models\ContactUs;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Model;
 
-class Contactus extends Model
-{
-    public $table = 'contact_us';
-
-    protected $fillable = [
-        'name', 'email', 'subject', 'message'
-    ];
-}
+#[Table('contact_us')]
+#[Fillable([
+    'name', 'email', 'subject', 'message',
+])]
+class Contactus extends Model {}

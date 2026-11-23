@@ -4,7 +4,6 @@ namespace App\Models\PreOwned;
 
 use App\Models\Care\PreOwnedCare;
 use App\Models\Gift\GiftProduct;
-use App\Models\PreOwned\PreOwnedImage;
 use App\Models\Product\Product;
 use App\Models\Product\ProductVariant;
 use Illuminate\Database\Eloquent\Model;

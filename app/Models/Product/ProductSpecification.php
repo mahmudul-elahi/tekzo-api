@@ -3,10 +3,11 @@
 namespace App\Models\Product;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ProductSpecification extends Model
 {
-    public function parent(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function parent(): BelongsTo
     {
         return $this->belongsTo(SpecificationGroup::class, 'parent_id', 'id');
     }
