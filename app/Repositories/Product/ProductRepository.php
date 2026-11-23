@@ -1,0 +1,302 @@
+<?php
+
+namespace App\Repositories\Product;
+
+use App\Enums\ProductStatus;
+use App\Models\Product\Product;
+use App\Models\Product\ProductVariant;
+use App\Repositories\BaseRepository;
+use App\Support\Filters\Product\ProductFilter;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
+
+class ProductRepository extends BaseRepository
+{
+    public function __construct(Product $product)
+    {
+        $this->model = $product;
+    }
+
+    /**
+     * A visible (active or coming soon) product with everything the detail page needs.
+     */
+    public function findVisibleBySlugForDetail(string $slug): ?Product
+    {
+        return $this->query()
+            ->whereSlug($slug)
+            ->whereIn('status', [ProductStatus::Active->value, ProductStatus::Comming->value])
+            ->whereHas('brand', function ($query) {
+                $query->where('status', true);
+            })
+            ->with([
+                'category:id,parent_id,name,slug',
+                'brand:id,name,slug,primary_logo,secondary_logo,shop_banner',
+                'specificationItems.parent',
+                'specificationItems.sub',
+                'cares.care',
+                'variants' => function ($q) {
+                    $q->where('status', '1')
+                        ->orderByLowestPrice()
+                        ->with([
+                            'attributeValues' => function ($q) {
+                                $q->orderByRaw("(
+                                        SELECT CASE WHEN LOWER(a.name) = 'color' THEN 0 ELSE 1 END
+                                        FROM attributes a WHERE a.id = attribute_values.attribute_id LIMIT 1
+                                    )");
+                            },
+                            'offerProduct',
+                            'price',
+                        ]);
+                },
+                'images',
+                'videos' => function ($q) {
+                    $q->whereNull('attribute_value_id');
+                },
+                'giftProduct' => function ($q) {
+                    $q->where('is_active', ProductStatus::Active->value)
+                        ->select(['id', 'product_id'])
+                        ->with(['variants' => function ($q) {
+                            $q->select(['id', 'product_id', 'gift_product_id', 'qty'])
+                                ->with('product:id,product_name,slug,product_image');
+                        }]);
+                },
+
+            ])
+            ->withCount('productViews as view_count')
+            ->withCount('reviews')
+            ->withAvg('reviews', 'rating')
+            ->first();
+    }
+
+    public function findIdBySlug(string $slug): ?Product
+    {
+        return $this->query()
+            ->select('id')
+            ->whereSlug($slug)
+            ->first();
+    }
+
+    public function findCategorizedBySlug(string $slug): ?Product
+    {
+        return $this->query()
+            ->whereNotNull('category_id')
+            ->whereSlug($slug)
+            ->first();
+    }
+
+    /**
+     * Random sellable products from the same category as the given product.
+     *
+     * @return Collection<int, Product>
+     */
+    public function randomSellableInCategory(Product $product, int $limit): Collection
+    {
+        return $this->applySellableConstraints(
+            $this->query()
+                ->with($this->cardRelations())
+                ->where('category_id', $product->category_id)
+                ->where('id', '!=', $product->id)
+        )
+            ->withCount(['giftProduct', 'cares'])
+            ->withAvg('reviews', 'rating')
+            ->inRandomOrder()
+            ->take($limit)
+            ->get();
+    }
+
+    /**
+     * Random sellable products from any category, skipping the given ids.
+     *
+     * @param  array<int, int>  $excludeIds
+     * @return Collection<int, Product>
+     */
+    public function randomSellableExcept(array $excludeIds, int $limit): Collection
+    {
+        return $this->applySellableConstraints(
+            $this->query()
+                ->with($this->cardRelations())
+                ->whereNotIn('id', $excludeIds)
+        )
+            ->withCount('giftProduct')
+            ->withAvg('reviews', 'rating')
+            ->inRandomOrder()
+            ->take($limit)
+            ->get();
+    }
+
+    /**
+     * Visible products in the given categories, optionally narrowed to one brand, with listing filters applied.
+     *
+     * @param  array<int, int>  $categoryIds
+     * @param  array{stock: mixed, min_price: mixed, max_price: mixed}  $filters
+     */
+    public function visibleInCategoriesQuery(array $categoryIds, ?string $brandSlug, array $filters): Builder
+    {
+        $query = $this->query()
+            ->whereIn('category_id', $categoryIds)
+            ->whereIn('status', [ProductStatus::Active->value, ProductStatus::Comming->value])
+            ->whereHas('brand', function ($query) {
+                $query->where('status', true);
+            })
+            ->when($brandSlug !== null, function ($query) use ($brandSlug) {
+                $query->whereHas('brand', function ($q) use ($brandSlug) {
+                    $q->where('slug', $brandSlug);
+                });
+            });
+
+        (new ProductFilter($filters))->apply($query);
+
+        return $query;
+    }
+
+    /**
+     * Paginate a category listing: in-stock first, then by display price, numbering and id.
+     */
+    public function paginateCategoryListing(Builder $baseQuery, ?string $sortBy, int $perPage): LengthAwarePaginator
+    {
+        return (clone $baseQuery)
+            ->addSelect($this->listingPriceSelects())
+            ->orderByRaw('has_stock DESC')
+            ->orderByRaw('display_price IS NULL ASC')
+            ->orderBy('display_price', $sortBy === 'price_asc' ? 'asc' : 'desc')
+            ->orderBy('numbering', 'asc')
+            ->orderBy('products.id', 'asc')
+            // 'brand' is read per product by SingleCategoryProductResource —
+            // without it, lazy-loading is blocked outside production (500).
+            ->with(['offerProduct', 'brand', 'stockVariant' => function ($q) {
+                $q->where('status', '1')
+                    ->orderByLowestPrice()
+                    ->with(['price']);
+            }])
+            ->withCount(['giftProduct', 'cares'])
+            ->withAvg('reviews', 'rating')
+            ->paginate($perPage);
+    }
+
+    /**
+     * Paginate a brand's visible products: in-stock first, then by display price, numbering and id.
+     *
+     * @param  array{stock: mixed, min_price: mixed, max_price: mixed}  $filters
+     */
+    public function paginateBrandListing(int $brandId, array $filters, ?string $categorySlug, ?string $sortBy, int $perPage): LengthAwarePaginator
+    {
+        return $this->query()
+            ->select('products.*')
+            ->where('brand_id', $brandId)
+            ->tap(function ($query) use ($filters) {
+                (new ProductFilter($filters))->apply($query);
+            })
+            ->addSelect($this->listingPriceSelects())
+            ->whereHas('brand', function ($query) {
+                $query->where('status', true);
+            })
+            ->with('category:id,name,slug')
+            ->whereIn('products.status', [ProductStatus::Active->value, ProductStatus::Comming->value])
+            ->orderByRaw('has_stock DESC')
+            ->orderByRaw('display_price IS NULL ASC')
+            ->orderBy('display_price', $sortBy === 'price_asc' ? 'asc' : 'desc')
+            ->orderBy('numbering', 'asc')
+            ->orderBy('products.id', 'asc')
+            ->with([
+                'offerProduct',
+                'stockVariant' => function ($q) {
+                    $q->where('status', '1')
+                        ->orderByLowestPrice()
+                        ->with(['price']);
+                },
+            ])
+            ->withCount(['giftProduct', 'cares'])
+            ->withAvg('reviews', 'rating')
+            ->when($categorySlug !== null, function ($query) use ($categorySlug) {
+                $query->whereHas('category', function ($q) use ($categorySlug) {
+                    $q->where('slug', $categorySlug);
+                });
+            })
+            ->paginate($perPage);
+    }
+
+    /**
+     * Record a unique view; repeat views from the same visitor are ignored.
+     */
+    public function recordView(int $productId, string $visitorHash): void
+    {
+        DB::table('product_views')->insertOrIgnore([
+            'product_id' => $productId,
+            'visitor_hash' => $visitorHash,
+            'viewed_at' => now(),
+        ]);
+    }
+
+    /**
+     * Active product, active brand, and at least one in-stock active variant with a real price.
+     */
+    private function applySellableConstraints(Builder $query): Builder
+    {
+        return $query
+            ->where('status', ProductStatus::Active)
+            ->whereHas('brand', function ($query) {
+                $query->where('status', true);
+            })
+            ->whereHas(
+                'variants',
+                fn ($q) => $q
+                    ->where('stock', true)
+                    ->where('status', '1')
+                    ->whereHas('price', fn ($p) => $p->where('max_retail_price', '>', 0))
+            );
+    }
+
+    /**
+     * Relations a product card needs.
+     *
+     * @return array<int|string, mixed>
+     */
+    private function cardRelations(): array
+    {
+        return [
+            'category:id,name,slug',
+            'offerProduct',
+            'stockVariant' => function ($q) {
+                $q->where('status', '1')
+                    ->where('stock', true)
+                    ->orderByLowestPrice()
+                    ->with(['price']);
+            },
+        ];
+    }
+
+    /**
+     * Sub-selects used to sort listings.
+     *
+     * - has_stock: 1 when any active variant is in stock.
+     * - display_price: the lowest final (post-discount) price across active variants,
+     *   matching the card price from orderByLowestPrice()/stockVariant. Variants with a
+     *   placeholder max_retail_price of 0 are skipped, so products with no valid price
+     *   get NULL and always sort last ("display_price IS NULL ASC").
+     *
+     * @return array<string, Builder>
+     */
+    private function listingPriceSelects(): array
+    {
+        return [
+            'has_stock' => ProductVariant::selectRaw('IF(MAX(stock) > 0, 1, 0)')
+                ->whereColumn('product_id', 'products.id')
+                ->where('status', '1')
+                ->limit(1),
+            'display_price' => ProductVariant::query()
+                ->join('variant_prices', 'variant_prices.product_variant_id', '=', 'product_variants.id')
+                ->whereColumn('product_variants.product_id', 'products.id')
+                ->where('product_variants.status', '1')
+                ->where('variant_prices.max_retail_price', '>', 0)
+                ->selectRaw('MIN(
+                        CASE
+                            WHEN variant_prices.discount_percent > 0 THEN variant_prices.max_retail_price - (variant_prices.max_retail_price * variant_prices.discount_percent / 100)
+                            WHEN variant_prices.discount_fixed > 0   THEN variant_prices.max_retail_price - variant_prices.discount_fixed
+                            ELSE variant_prices.max_retail_price
+                        END
+                    )'),
+        ];
+    }
+}
