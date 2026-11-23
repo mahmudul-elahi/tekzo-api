@@ -218,6 +218,178 @@ class ProductRepository extends BaseRepository
     }
 
     /**
+     * The first 4 active products (home "flash sale products" block).
+     *
+     * @return Collection<int, Product>
+     */
+    public function firstActiveForFlashSaleBlock(): Collection
+    {
+        return $this->query()
+            ->select('id', 'product_name', 'slug', 'headline', 'product_image', 'category_id', 'is_refurbished')
+            ->where('status', ProductStatus::Active->value)
+
+            ->with(['category:id,name,slug', 'stockVariant.price'])
+            ->withCount('reviews')
+            ->limit(4)
+            ->get();
+    }
+
+    /**
+     * Active products in an offer, in-stock first, then by numbering.
+     *
+     * @return Collection<int, Product>
+     */
+    public function activeInOffer(int $offerId): Collection
+    {
+        return $this->query()
+            ->whereHas('offerProduct', function ($query) use ($offerId) {
+                $query->where('offer_id', $offerId);
+            })
+            ->where('status', ProductStatus::Active->value)
+            ->addSelect([
+                'has_stock' => ProductVariant::selectRaw('MAX(stock)')
+                    ->whereColumn('product_id', 'products.id')
+                    ->where('status', '1')
+                    ->limit(1),
+            ])
+            ->with(['category:id,name,slug', 'offerProduct' => function ($query) use ($offerId) {
+                $query->where('offer_id', $offerId);
+            }, 'stockVariant' => function ($q) {
+                $q->where('status', '1')
+                    ->with(['price']);
+            }])
+
+            ->withCount(['offerProduct', 'cares'])
+            ->withAvg('reviews', 'rating')
+            ->orderByRaw('has_stock DESC')
+            ->orderBy('numbering', 'asc')
+            ->get();
+    }
+
+    /**
+     * Up to 8 active featured products from active brands that have a stock variant.
+     *
+     * @return Collection<int, Product>
+     */
+    public function featured(): Collection
+    {
+        return $this->query()
+            ->select('id', 'slug', 'product_name', 'headline', 'product_image', 'category_id', 'has_official_warranty', 'is_chinese', 'is_unofficial', 'is_refurbished', 'purchase_point', 'booking_amount')
+            ->where('status', ProductStatus::Active->value)
+            ->where('a_status', ProductStatus::Featured->value)
+            ->whereHas('brand', function ($query) {
+                $query->where('status', true);
+            })
+            ->whereHas('stockVariant')
+            ->with(['category:id,name,slug', 'offerProduct', 'stockVariant' => function ($q) {
+                $q->where('status', '1')
+                    ->orderByLowestPrice()
+                    ->with(['price']);
+            }])
+            ->withCount(['giftProduct', 'cares'])
+            ->withAvg('reviews', 'rating')
+            ->limit(8)
+            ->get();
+    }
+
+    /**
+     * The 4 newest arrivals (created in the last 30 days).
+     *
+     * @return Collection<int, Product>
+     */
+    public function latestArrivals(): Collection
+    {
+        return $this->newArrivalsQuery(['id', 'slug', 'product_name', 'headline', 'product_image', 'category_id', 'has_official_warranty', 'is_chinese', 'is_unofficial', 'is_refurbished', 'purchase_point', 'booking_amount'])
+            ->limit(4)
+            ->get();
+    }
+
+    /**
+     * Paginated arrivals created in the last 30 days, newest first.
+     */
+    public function paginateNewArrivals(int $perPage): LengthAwarePaginator
+    {
+        return $this->newArrivalsQuery([
+            'id',
+            'slug',
+            'product_image',
+            'product_name',
+            'category_id',
+            'brand_id',
+            'status',
+            'a_status',
+            'headline',
+            'created_at',
+            'has_official_warranty',
+            'is_chinese',
+            'is_unofficial',
+            'is_refurbished',
+            'purchase_point',
+            'booking_amount',
+        ])
+            ->paginate($perPage);
+    }
+
+    /**
+     * Up to 20 search-as-you-type matches from the search index.
+     *
+     * @return Collection<int, Product>
+     */
+    public function searchSuggestions(string $query): Collection
+    {
+        return Product::search($query, function ($meilisearch, string $query, array $options) {
+            $options['attributesToSearchOn'] = [
+                'name',
+                'name_words',
+                'headline',
+                'short_description',
+                'category',
+                'brand',
+            ];
+            $options['matchingStrategy'] = 'last';
+
+            return $meilisearch->search($query, $options);
+        })
+            ->query(function ($builder) {
+                $builder->with([
+                    'category',
+                    'offerProduct',
+                    'stockVariant' => function ($q) {
+                        $q->where('status', '1')
+                            ->with('price')
+                            ->orderByLowestPrice();
+                    },
+                    'brand',
+                ])->whereHas('brand', function ($q) {
+                    $q->where('status', true);
+                })->withCount('cares');
+            })
+            ->whereIn('status', [ProductStatus::Active->value, ProductStatus::Comming->value])
+            ->take(20)
+            ->get();
+    }
+
+    /**
+     * Paginated full search results from the search index.
+     */
+    public function paginateSearch(string $query, int $perPage): LengthAwarePaginator
+    {
+        return Product::search($query)
+            ->query(
+                fn ($q) => $q->with(['category:id,name,slug', 'offerProduct', 'stockVariant' => function ($q) {
+                    $q->where('status', '1')
+                        ->with(['price']);
+                }])
+                    ->withCount(['reviews', 'cares'])
+                    ->whereIn('status', [ProductStatus::Active->value, ProductStatus::Comming->value])
+                    ->whereHas('brand', function ($q) {
+                        $q->where('status', true);
+                    })
+            )
+            ->paginate($perPage);
+    }
+
+    /**
      * Record a unique view; repeat views from the same visitor are ignored.
      */
     public function recordView(int $productId, string $visitorHash): void
@@ -227,6 +399,31 @@ class ProductRepository extends BaseRepository
             'visitor_hash' => $visitorHash,
             'viewed_at' => now(),
         ]);
+    }
+
+    /**
+     * Active products from active brands, created in the last 30 days, with a stock variant; newest first.
+     *
+     * @param  array<int, string>  $columns  selected before the count/avg sub-selects are added
+     */
+    private function newArrivalsQuery(array $columns): Builder
+    {
+        return $this->query()
+            ->select($columns)
+            ->where('status', ProductStatus::Active->value)
+            ->where('created_at', '>=', now()->subDays(30))
+            ->whereHas('brand', function ($query) {
+                $query->where('status', true);
+            })
+            ->whereHas('stockVariant')
+            ->with(['category:id,name,slug', 'offerProduct', 'stockVariant' => function ($q) {
+                $q->where('status', '1')
+                    ->orderByLowestPrice()
+                    ->with(['price']);
+            }])
+            ->withCount(['giftProduct', 'cares'])
+            ->withAvg('reviews', 'rating')
+            ->orderByDesc('created_at');
     }
 
     /**

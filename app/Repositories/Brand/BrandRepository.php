@@ -15,6 +15,21 @@ class BrandRepository extends BaseRepository
         $this->model = $brand;
     }
 
+    /**
+     * Active brands in display order.
+     *
+     * @param  array<int, string>  $columns
+     * @return Collection<int, Brand>
+     */
+    public function activeOrdered(array $columns): Collection
+    {
+        return $this->query()
+            ->where('status', true)
+            ->orderBy('order', 'asc')
+            ->select($columns)
+            ->get();
+    }
+
     public function findWithDescriptionBySlug(string $slug): ?Brand
     {
         return $this->query()

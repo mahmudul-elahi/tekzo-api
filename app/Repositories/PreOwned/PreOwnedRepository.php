@@ -84,6 +84,26 @@ class PreOwnedRepository extends BaseRepository
     }
 
     /**
+     * The 10 newest unsold pre-owned items.
+     *
+     * @return Collection<int, PreOwned>
+     */
+    public function latestUnsold(): Collection
+    {
+        return $this->query()
+            ->with(['product' => function ($q) {
+                $q->select(['id', 'product_name', 'slug', 'brand_id', 'category_id'])
+                    ->with(['brand:id,name,slug', 'category:id,name,slug']);
+            },   'attributes' => function ($q) {
+                $q->with('attribute', 'attributeValue');
+            }])
+            ->where('is_sold', '!=', true)
+            ->orderByDesc('id')
+            ->limit(10)
+            ->get();
+    }
+
+    /**
      * @return array<string, \Closure>
      */
     private function relatedRelations(): array
