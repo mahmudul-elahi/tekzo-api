@@ -5,12 +5,15 @@ namespace App\Http\Controllers\Api\V1\Customer\Profile;
 use App\Exceptions\GeneralException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Customer\Profile\ChangePasswordRequest;
+use App\Http\Requests\Customer\Profile\EmailChangeRequest;
+use App\Http\Requests\Customer\Profile\EmailVerifyRequest;
+use App\Http\Requests\Customer\Profile\PhoneChangeRequest;
+use App\Http\Requests\Customer\Profile\PhoneVerifyRequest;
 use App\Http\Requests\Customer\Profile\ProfileRequest;
 use App\Http\Resources\Customer\Profile\ProfileResource;
 use App\Models\Contact\Contact;
 use App\Services\Customer\ProfileService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
@@ -42,13 +45,9 @@ class ProfileController extends Controller
      * @throws Throwable
      * @throws GeneralException
      */
-    public function emailVerifyRequest(Request $request): JsonResponse
+    public function emailVerifyRequest(EmailChangeRequest $request): JsonResponse
     {
         $customer = $this->authCustomer();
-
-        $request->validate([
-            'email' => ['required', 'email', 'indisposable', 'unique:contacts,email,'.$customer->id],
-        ]);
 
         $this->profileService->requestEmailChange($customer, $request->email);
 
@@ -58,12 +57,8 @@ class ProfileController extends Controller
     /**
      * @throws GeneralException
      */
-    public function emailVerify(Request $request): JsonResponse
+    public function emailVerify(EmailVerifyRequest $request): JsonResponse
     {
-        $request->validate([
-            'email' => ['required', 'email'],
-            'code' => ['required'],
-        ]);
 
         $this->profileService->confirmEmailChange($this->authCustomer(), $request->email, $request->code);
 
@@ -74,18 +69,9 @@ class ProfileController extends Controller
      * @throws Throwable
      * @throws GeneralException
      */
-    public function phoneVerifyRequest(Request $request): JsonResponse
+    public function phoneVerifyRequest(PhoneChangeRequest $request): JsonResponse
     {
         $customer = $this->authCustomer();
-
-        $request->validate([
-            'phone_number' => [
-                'required',
-                'string',
-                'regex:/^(\+?88)?01[0-9]{9}$/',
-                'unique:contacts,phone,'.$customer->id,
-            ],
-        ]);
 
         $this->profileService->requestPhoneChange($customer, $request->phone_number);
 
@@ -97,12 +83,8 @@ class ProfileController extends Controller
      *
      * @throws GeneralException
      */
-    public function phoneVerify(Request $request): JsonResponse
+    public function phoneVerify(PhoneVerifyRequest $request): JsonResponse
     {
-        $request->validate([
-            'phone_number' => ['required', 'string'],
-            'code' => ['required'],
-        ]);
 
         $this->profileService->confirmPhoneChange($this->authCustomer(), $request->phone_number, $request->code);
 

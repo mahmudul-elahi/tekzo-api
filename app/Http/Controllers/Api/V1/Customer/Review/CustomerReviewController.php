@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Customer\Review;
 
 use App\Exceptions\GeneralException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Customer\Review\StoreReviewRequest;
 use App\Http\Resources\Customer\Review\CustomerReviewResource;
 use App\Http\Resources\Customer\Review\DeliveredLineDetailResource;
 use App\Http\Resources\Customer\Review\DeliveredLineResource;
@@ -31,14 +32,8 @@ class CustomerReviewController extends Controller
      *
      * @throws GeneralException|Throwable
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreReviewRequest $request): JsonResponse
     {
-        $request->validate([
-            'order_detail_id' => 'required|integer|exists:order_lists,id',
-            'rating' => 'required|numeric|min:1|max:5',
-            'comment' => 'nullable|string|max:1000',
-            'review_image' => ['nullable', 'file', 'mimes:jpeg,png,jpg,svg', 'max:1024'],
-        ]);
 
         $this->reviewService->submit(
             $this->customerId(),

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\SellDeviceRequest;
 
 use App\Exceptions\GeneralException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\SellDeviceRequest\SellDeviceImageChunkRequest;
 use App\Http\Requests\SellDeviceRequest\SellDeviceRequestRequest;
 use App\Http\Resources\SellDeviceRequest\SellDeviceRequestResource;
 use App\Models\SellDeviceRequest\SellDeviceRequest as SellDeviceRequestModel;
@@ -48,15 +49,8 @@ class SellDeviceRequestController extends Controller
      *
      * @throws GeneralException
      */
-    public function uploadImage(Request $request): JsonResponse
+    public function uploadImage(SellDeviceImageChunkRequest $request): JsonResponse
     {
-        $request->validate([
-            'file' => ['required', 'file', 'max:2048'],
-            'identifier' => ['required', 'string', 'max:100', 'regex:/^[a-zA-Z0-9_-]+$/'],
-            'filename' => ['required', 'string'],
-            'chunk_index' => ['required', 'integer', 'min:0'],
-            'total_chunks' => ['required', 'integer', 'min:1', 'max:50'],
-        ]);
 
         return successResponse($this->imageUploadService->receiveChunk(
             $this->customerId(),

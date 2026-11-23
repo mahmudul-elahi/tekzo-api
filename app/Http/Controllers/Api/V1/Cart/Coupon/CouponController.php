@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Api\V1\Cart\Coupon;
 
 use App\Exceptions\GeneralException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Cart\ApplyCouponRequest;
 use App\Services\Coupon\CouponService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class CouponController extends Controller
 {
@@ -15,11 +15,8 @@ class CouponController extends Controller
     /**
      * @throws GeneralException
      */
-    public function applyCoupon(Request $request): JsonResponse
+    public function applyCoupon(ApplyCouponRequest $request): JsonResponse
     {
-        $request->validate([
-            'code' => ['required', 'string'],
-        ]);
 
         return successResponse($this->couponService->applyToCart(auth()->guard('customer')->id(), $request->code));
     }

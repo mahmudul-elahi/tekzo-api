@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api\V1\Wishlist;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Wishlist\AddToWishlistRequest;
+use App\Http\Requests\Wishlist\ToggleWishlistItemRequest;
+use App\Http\Requests\Wishlist\UpdateWishlistItemRequest;
 use App\Http\Resources\Wishlist\WishlistResource;
 use App\Services\Wishlist\WishlistService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Throwable;
 
 class WishlistController extends Controller
@@ -23,12 +25,8 @@ class WishlistController extends Controller
     /**
      * @throws Throwable
      */
-    public function store(Request $request): JsonResponse
+    public function store(AddToWishlistRequest $request): JsonResponse
     {
-        $request->validate([
-            'variant_id' => ['required', 'exists:product_variants,id'],
-            'quantity' => ['required', 'integer', 'min:1'],
-        ]);
 
         $this->wishlistService->addVariant($this->customerId(), $request->variant_id, (int) $request->quantity);
 
@@ -38,11 +36,8 @@ class WishlistController extends Controller
     /**
      * @throws Throwable
      */
-    public function update(Request $request, string $id): JsonResponse
+    public function update(UpdateWishlistItemRequest $request, string $id): JsonResponse
     {
-        $request->validate([
-            'quantity' => ['required', 'integer', 'min:1'],
-        ]);
 
         $this->wishlistService->updateQuantity($this->customerId(), $id, (int) $request->quantity);
 
@@ -62,12 +57,8 @@ class WishlistController extends Controller
     /**
      * @throws Throwable
      */
-    public function toggleSelect(Request $request): JsonResponse
+    public function toggleSelect(ToggleWishlistItemRequest $request): JsonResponse
     {
-        $request->validate([
-            'cart_item_id' => ['required', 'exists:wishlist_items,id'],
-            'is_select' => ['required', 'boolean'],
-        ]);
 
         $this->wishlistService->setSelected($this->customerId(), $request->cart_item_id, $request->is_select);
 

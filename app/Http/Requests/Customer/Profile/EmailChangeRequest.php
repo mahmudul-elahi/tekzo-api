@@ -1,0 +1,23 @@
+<?php
+
+namespace App\Http\Requests\Customer\Profile;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class EmailChangeRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function rules(): array
+    {
+        return [
+            'email' => ['required', 'email', 'indisposable', 'unique:contacts,email,'.auth()->guard('customer')->id()],
+        ];
+    }
+}

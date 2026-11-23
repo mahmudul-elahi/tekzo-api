@@ -4,9 +4,10 @@ namespace App\Http\Controllers\Api\V1\Guest;
 
 use App\Exceptions\GeneralException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Guest\GuestPhoneOtpRequest;
+use App\Http\Requests\Guest\GuestPhoneVerifyRequest;
 use App\Services\Customer\PhoneOtpService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Throwable;
 
 class GuestPhoneController extends Controller
@@ -17,15 +18,8 @@ class GuestPhoneController extends Controller
      * @throws Throwable
      * @throws GeneralException
      */
-    public function phoneVerifyRequest(Request $request): JsonResponse
+    public function phoneVerifyRequest(GuestPhoneOtpRequest $request): JsonResponse
     {
-        $request->validate([
-            'phone_number' => [
-                'required',
-                'string',
-                'regex:/^(\+?88)?01[0-9]{9}$/',
-            ],
-        ]);
 
         $this->phoneOtp->send($request->phone_number);
 
@@ -35,12 +29,8 @@ class GuestPhoneController extends Controller
     /**
      * @throws GeneralException
      */
-    public function phoneVerify(Request $request): JsonResponse
+    public function phoneVerify(GuestPhoneVerifyRequest $request): JsonResponse
     {
-        $request->validate([
-            'phone_number' => ['required', 'string'],
-            'code' => ['required'],
-        ]);
 
         $record = $this->phoneOtp->findValid($request->phone_number, $request->code);
 

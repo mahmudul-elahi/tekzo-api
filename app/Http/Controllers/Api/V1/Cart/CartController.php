@@ -4,11 +4,12 @@ namespace App\Http\Controllers\Api\V1\Cart;
 
 use App\Exceptions\GeneralException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Cart\AddToCartRequest;
+use App\Http\Requests\Cart\ToggleCartItemRequest;
+use App\Http\Requests\Cart\UpdateCartItemRequest;
 use App\Http\Resources\Cart\CartResource;
 use App\Services\Cart\CartService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Throwable;
 
 class CartController extends Controller
@@ -27,17 +28,8 @@ class CartController extends Controller
      *
      * @throws Throwable
      */
-    public function store(Request $request): JsonResponse
+    public function store(AddToCartRequest $request): JsonResponse
     {
-        $request->validate([
-            'variant_id' => ['required', 'exists:product_variants,id'],
-            'quantity' => ['required', 'integer', 'min:1'],
-            'pre_owned_id' => ['nullable', 'exists:pre_owneds,id'],
-            'gift_id' => ['nullable', Rule::exists('gift_product_variants', 'id')->whereNull('deleted_at')],
-            'care_id' => ! empty($request->input('pre_owned_id'))
-                ? ['nullable', Rule::exists('pre_owned_cares', 'id')->whereNull('deleted_at')]
-                : ['nullable', Rule::exists('product_cares', 'id')->whereNull('deleted_at')],
-        ]);
 
         $quantity = (int) $request->quantity;
         $customerId = $this->customerId();
@@ -58,11 +50,8 @@ class CartController extends Controller
     /**
      * @throws Throwable
      */
-    public function update(Request $request, string $id): JsonResponse
+    public function update(UpdateCartItemRequest $request, string $id): JsonResponse
     {
-        $request->validate([
-            'quantity' => ['required', 'integer', 'min:1'],
-        ]);
 
         $this->cartService->updateQuantity($this->customerId(), $id, (int) $request->quantity);
 
@@ -82,12 +71,8 @@ class CartController extends Controller
     /**
      * @throws Throwable
      */
-    public function toggleSelect(Request $request): JsonResponse
+    public function toggleSelect(ToggleCartItemRequest $request): JsonResponse
     {
-        $request->validate([
-            'cart_item_id' => ['required', 'exists:cart_items,id'],
-            'is_select' => ['required', 'boolean'],
-        ]);
 
         $this->cartService->setSelected($this->customerId(), $request->cart_item_id, $request->is_select);
 

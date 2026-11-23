@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\V1\BuyNow;
 
 use App\Exceptions\GeneralException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\BuyNow\GuestCouponCheckRequest;
+use App\Http\Requests\BuyNow\GuestOrderRequest;
 use App\Jobs\Order\OrderConfirmJob;
 use App\Services\Order\GuestOrderService;
 use App\Services\Order\OrderPaymentService;
@@ -12,7 +14,6 @@ use App\Services\Payment\Bkash\BkashService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Throwable;
 
 class BuyNowController extends Controller
@@ -29,36 +30,8 @@ class BuyNowController extends Controller
      *
      * @throws GeneralException|Throwable
      */
-    public function gustBuyNow(Request $request): mixed
+    public function gustBuyNow(GuestOrderRequest $request): mixed
     {
-        $rules = [
-            'payment_method' => ['required', 'in:cod,online,bkash'],
-            'booking_amount_only' => ['nullable', 'in:0,1'],
-            'email' => ['required', 'indisposable', 'email', 'max:100'],
-            'phone' => ['required', 'max:13'],
-            'full_name' => ['required', 'max:100'],
-            'district_id' => ['required', 'exists:new_districts,id'],
-            'area_id' => ['required', 'exists:areas,id'],
-            'address' => ['required', 'max:500'],
-            'note' => ['nullable', 'max:500'],
-            'is_agree' => ['required', 'in:1'],
-            'carts' => ['required', 'array'],
-            'carts.*.product_id' => ['required', 'exists:products,id'],
-            'carts.*.product_variant_id' => ['required', 'exists:product_variants,id'],
-            'carts.*.pre_owned_id' => ['nullable', 'exists:pre_owneds,id'],
-            'carts.*.quantity' => ['required', 'integer', 'min:1'],
-            'carts.*.gift_id' => ['nullable', Rule::exists('gift_product_variants', 'id')->whereNull('deleted_at')],
-            'coupon_code' => ['nullable', 'string'],
-        ];
-
-        foreach ($request->input('carts', []) as $i => $cart) {
-            $rules["carts.$i.care_id"] = ! empty($cart['pre_owned_id'])
-                ? ['nullable', Rule::exists('pre_owned_cares', 'id')->whereNull('deleted_at')]
-                : ['nullable', Rule::exists('product_cares', 'id')->whereNull('deleted_at')];
-        }
-
-        $request->validate($rules);
-
         $order = $this->guestOrderService->placeOrder($request->all());
 
         $amount = $request->booking_amount_only ? $order->total_booking_amount : $order->grand_total;
@@ -82,16 +55,8 @@ class BuyNowController extends Controller
     /**
      * @throws GeneralException
      */
-    public function checkCoupon(Request $request): JsonResponse
+    public function checkCoupon(GuestCouponCheckRequest $request): JsonResponse
     {
-        $request->validate([
-            'coupon_code' => ['required', 'string'],
-            'carts' => ['required', 'array'],
-            'carts.*.product_id' => ['required', 'exists:products,id'],
-            'carts.*.product_variant_id' => ['required', 'exists:product_variants,id'],
-            'carts.*.quantity' => ['required', 'integer', 'min:1'],
-        ]);
-
         return successResponse($this->guestOrderService->quoteCoupon($request->coupon_code, $request->carts));
     }
 

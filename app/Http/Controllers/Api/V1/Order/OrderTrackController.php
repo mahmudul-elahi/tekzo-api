@@ -4,20 +4,18 @@ namespace App\Http\Controllers\Api\V1\Order;
 
 use App\Enums\StatusEnum;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Order\OrderTrackingRequest;
+use App\Http\Requests\Order\ProductVerifyRequest;
 use App\Http\Resources\Order\ProductVerifyResource;
 use App\Services\Order\OrderTrackingService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class OrderTrackController extends Controller
 {
     public function __construct(private OrderTrackingService $trackingService) {}
 
-    public function orderTracking(Request $request): JsonResponse
+    public function orderTracking(OrderTrackingRequest $request): JsonResponse
     {
-        $request->validate([
-            'order_number' => 'required',
-        ]);
 
         $order = $this->trackingService->findByInvoiceNumber($request->order_number);
 
@@ -37,11 +35,8 @@ class OrderTrackController extends Controller
         ]);
     }
 
-    public function productVerify(Request $request): JsonResponse
+    public function productVerify(ProductVerifyRequest $request): JsonResponse
     {
-        $request->validate([
-            'phone' => ['required', 'string', 'max:20'],
-        ]);
 
         return successResponse(
             $this->trackingService->verifiedProducts($request->phone)

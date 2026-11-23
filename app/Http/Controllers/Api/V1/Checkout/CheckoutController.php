@@ -4,11 +4,10 @@ namespace App\Http\Controllers\Api\V1\Checkout;
 
 use App\Exceptions\GeneralException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Checkout\CheckoutRequest;
 use App\Jobs\Order\OrderConfirmJob;
 use App\Services\Order\CheckoutService;
 use App\Services\Order\OrderPaymentService;
-use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Throwable;
 
 class CheckoutController extends Controller
@@ -25,18 +24,9 @@ class CheckoutController extends Controller
      * @throws Throwable
      * @throws GeneralException
      */
-    public function checkout(Request $request): mixed
+    public function checkout(CheckoutRequest $request): mixed
     {
         $customerId = auth()->guard('customer')->id();
-
-        $request->validate([
-            'payment_method' => ['required', 'in:cod,online,bkash'],
-            'shipping_address_id' => [
-                'required',
-                Rule::exists('customer_addresses', 'id')->where('contact_id', $customerId),
-            ],
-            'booking_amount_only' => ['nullable', 'in:0,1'],
-        ]);
 
         $order = $this->checkoutService->placeOrder($customerId, $request->shipping_address_id, $request->payment_method, $request->booking_amount_only);
 
