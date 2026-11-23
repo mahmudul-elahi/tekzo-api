@@ -8,11 +8,9 @@ use Illuminate\Support\Facades\DB;
 class BkashTokenManager
 {
     public function __construct(
-        private readonly BkashConfig     $config,
+        private readonly BkashConfig $config,
         private readonly BkashHttpClient $http,
-    )
-    {
-    }
+    ) {}
 
     public function getToken(): string
     {
@@ -30,8 +28,8 @@ class BkashTokenManager
         $headers = [
             'Content-Type:application/json',
             'Accept:application/json',
-            'username:' . $this->config->username,
-            'password:' . $this->config->password,
+            'username:'.$this->config->username,
+            'password:'.$this->config->password,
         ];
 
         $response = $this->http->post(

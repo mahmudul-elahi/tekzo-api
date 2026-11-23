@@ -4,15 +4,14 @@ namespace App\Support;
 
 class PriceCalculator
 {
-
     public static function resolveProductDiscount($offerProduct = null)
     {
-        $discountType   = $offerProduct?->discount_type;
+        $discountType = $offerProduct?->discount_type;
         $discountAmount = $offerProduct?->discount_amount ?? 0;
 
         return [
             'percent' => $discountType === 'percentage' ? $discountAmount : 0,
-            'fixed'   => $discountType === 'fixed'      ? $discountAmount : 0,
+            'fixed' => $discountType === 'fixed' ? $discountAmount : 0,
         ];
     }
 
@@ -56,11 +55,11 @@ class PriceCalculator
     ): ?string {
 
         if ($discountPercent > 0) {
-            return $discountPercent . '% OFF';
+            return $discountPercent.'% OFF';
         }
 
         if ($discountFixed > 0) {
-            return $discountFixed . ' OFF';
+            return $discountFixed.' OFF';
         }
 
         return null;
@@ -72,7 +71,7 @@ class PriceCalculator
     ): ?string {
 
         if ($discountPercent > 0) {
-            return $discountPercent . '%';
+            return $discountPercent.'%';
         }
 
         if ($discountFixed > 0) {

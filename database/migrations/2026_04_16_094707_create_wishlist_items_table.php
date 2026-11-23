@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\Product\Product;
+use App\Models\Product\ProductVariant;
 use App\Models\Wishlist\Wishlist;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -15,8 +17,8 @@ return new class extends Migration
         Schema::create('wishlist_items', function (Blueprint $table) {
             $table->id();
             $table->foreignIdFor(Wishlist::class)->constrained()->cascadeOnDelete();
-            $table->foreignIdFor(App\Models\Product\Product::class)->constrained()->cascadeOnDelete();
-            $table->foreignIdFor(\App\Models\Product\ProductVariant::class)->constrained()->cascadeOnDelete();
+            $table->foreignIdFor(Product::class)->constrained()->cascadeOnDelete();
+            $table->foreignIdFor(ProductVariant::class)->constrained()->cascadeOnDelete();
             $table->boolean('is_select')->default(true);
             $table->decimal('booking_amount')->default(0);
             $table->json('attributes')->nullable();

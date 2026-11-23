@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\Contact\Contact;
+use App\Models\Tenant\Tenant;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -13,8 +15,8 @@ return new class extends Migration
     {
         Schema::create('wishlists', function (Blueprint $table) {
             $table->id();
-            $table->foreignIdFor(App\Models\Contact\Contact::class)->constrained()->cascadeOnDelete();
-            $table->foreignIdFor(App\Models\Tenant\Tenant::class)->nullable()->constrained()->cascadeOnDelete();
+            $table->foreignIdFor(Contact::class)->constrained()->cascadeOnDelete();
+            $table->foreignIdFor(Tenant::class)->nullable()->constrained()->cascadeOnDelete();
             $table->decimal('sub_total', 12, 2)->default(0);
             $table->decimal('grand_total', 12, 2)->default(0);
             $table->timestamps();

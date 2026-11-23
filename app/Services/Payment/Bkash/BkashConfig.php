@@ -11,9 +11,7 @@ readonly class BkashConfig
         public string $appKey,
         public string $appSecret,
         public string $websiteUrl,
-    )
-    {
-    }
+    ) {}
 
     public static function fromConfig(): self
     {

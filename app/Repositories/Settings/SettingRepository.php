@@ -5,6 +5,7 @@ namespace App\Repositories\Settings;
 use App\Models\Setting\Setting;
 use App\Repositories\BaseRepository;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
 class SettingRepository extends BaseRepository
@@ -40,10 +41,9 @@ class SettingRepository extends BaseRepository
      */
     public function createOrRetrieveSetting(string $name, string $context)
     {
-            return $this->basicQuery($context)
-                ->where('name', $name)
-                ->firstOrNew();
-
+        return $this->basicQuery($context)
+            ->where('name', $name)
+            ->firstOrNew();
 
     }
 
@@ -61,9 +61,8 @@ class SettingRepository extends BaseRepository
     public function getDeliverySettings($context): array
     {
 
-            $settings = $this->basicQuery($context)
-                ->get(['id', 'name', 'value']);
-
+        $settings = $this->basicQuery($context)
+            ->get(['id', 'name', 'value']);
 
         return $this->formatSettings($settings);
     }
@@ -74,9 +73,9 @@ class SettingRepository extends BaseRepository
     private function basicQuery($context = null, $settingAbleType = null, $settingAbleId = null): Builder
     {
         return $this->model::query()
-            ->when($context, fn(Builder $query) => $query->whereIn('context', is_array($context) ? $context : [$context]))
-            ->when($settingAbleType, fn(Builder $query) => $query->where('settingable_type', $settingAbleType))
-            ->when($settingAbleId, fn(Builder $query) => $query->where('settingable_id', $settingAbleId));
+            ->when($context, fn (Builder $query) => $query->whereIn('context', is_array($context) ? $context : [$context]))
+            ->when($settingAbleType, fn (Builder $query) => $query->where('settingable_type', $settingAbleType))
+            ->when($settingAbleId, fn (Builder $query) => $query->where('settingable_id', $settingAbleId));
     }
 
     /**
@@ -102,11 +101,10 @@ class SettingRepository extends BaseRepository
             ->first();
     }
 
-    public function createSettingInstance(string $name, string $context, $settingAbleType = null, $settingAbleId = null): \Illuminate\Database\Eloquent\Model
+    public function createSettingInstance(string $name, string $context, $settingAbleType = null, $settingAbleId = null): Model
     {
         return $this->basicQuery($context, $settingAbleType, $settingAbleId)
             ->where('name', $name)
             ->firstOrNew();
     }
-
 }

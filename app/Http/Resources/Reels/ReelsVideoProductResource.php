@@ -22,7 +22,7 @@ class ReelsVideoProductResource extends JsonResource
             ['percent' => $discountPercent, 'fixed' => $discountFixed] = PriceCalculator::resolveProductDiscount($this->offerProduct);
         } else {
             $discountPercent = $price->discount_percent ?? 0;
-            $discountFixed   = $price->discount_fixed ?? 0;
+            $discountFixed = $price->discount_fixed ?? 0;
         }
 
         return [
@@ -51,13 +51,13 @@ class ReelsVideoProductResource extends JsonResource
             ),
             'is_stock' => $this->stockVariant?->stock,
 
-            'brand' => $this->whenLoaded('brand', fn() => [
+            'brand' => $this->whenLoaded('brand', fn () => [
                 'id' => $this->brand?->id,
                 'name' => $this->brand?->name,
                 'slug' => $this->brand?->slug,
                 'logo' => $this->brand?->primary_logo,
             ]),
-            'total_review' => $this->reviews_count
+            'total_review' => $this->reviews_count,
         ];
     }
 }

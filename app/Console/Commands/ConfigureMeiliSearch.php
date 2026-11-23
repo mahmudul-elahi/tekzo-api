@@ -8,6 +8,7 @@ use Meilisearch\Client;
 class ConfigureMeiliSearch extends Command
 {
     protected $signature = 'app:meilisearch';
+
     protected $description = 'Configure MeiliSearch index settings for Product';
 
     public function handle()
@@ -19,7 +20,6 @@ class ConfigureMeiliSearch extends Command
 
         $index = $client->index('products');
 
-
         $index->updateSearchableAttributes([
             'name',
             'name_words',
@@ -29,7 +29,7 @@ class ConfigureMeiliSearch extends Command
             'brand',
         ]);
 
-        // Search rank/priority 
+        // Search rank/priority
         $index->updateRankingRules([
             'words',
             'typo',
@@ -44,12 +44,11 @@ class ConfigureMeiliSearch extends Command
             'enabled' => true,
             // 4/8 stops "redmi" matching "rem" and "s24" matching "s25"
             'minWordSizeForTypos' => [
-                'oneTypo'  => 4,
+                'oneTypo' => 4,
                 'twoTypos' => 8,
             ],
             'disableOnNumbers' => true,
         ]);
-
 
         $index->updateStopWords([
             // =====================

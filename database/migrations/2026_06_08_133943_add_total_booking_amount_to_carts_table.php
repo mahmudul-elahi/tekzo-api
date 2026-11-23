@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (!Schema::hasColumn('carts', 'total_booking_amount')) {
+        if (! Schema::hasColumn('carts', 'total_booking_amount')) {
             Schema::table('carts', function (Blueprint $table) {
                 $table->decimal('total_booking_amount', 12, 2)
                     ->default(0)

@@ -56,25 +56,22 @@ class RegisterRequest extends FormRequest
 
             // 017xxxxxxxx
             if (str_starts_with($phone, '01')) {
-                $phone = '+88' . $phone;
+                $phone = '+88'.$phone;
             }
 
             // 8801xxxxxxxx
             elseif (str_starts_with($phone, '8801')) {
-                $phone = '+' . $phone;
+                $phone = '+'.$phone;
             }
 
             // 801xxxxxxxx (missing one 8)
             elseif (str_starts_with($phone, '801')) {
-                $phone = '+8' . $phone;
+                $phone = '+8'.$phone;
             }
 
             $this->merge([
-                'phone' => $phone
+                'phone' => $phone,
             ]);
         }
     }
-
-
 }
-
