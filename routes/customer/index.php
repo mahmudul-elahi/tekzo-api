@@ -1,19 +1,19 @@
 <?php
 
-use App\Http\Controllers\BuyNow\BuyNowController;
-use App\Http\Controllers\Cart\CartController;
-use App\Http\Controllers\Cart\Coupon\CouponController;
-use App\Http\Controllers\Checkout\CheckoutController;
-use App\Http\Controllers\Customer\Address\ShippingAddressController;
-use App\Http\Controllers\Customer\Profile\AddressController;
-use App\Http\Controllers\Customer\Profile\ProfileController;
-use App\Http\Controllers\Customer\Review\CustomerReviewController;
-use App\Http\Controllers\Gust\GustPhoneController;
-use App\Http\Controllers\Invoice\InvoiceDownoloadController;
-use App\Http\Controllers\Order\OrderController;
-use App\Http\Controllers\SellDeviceRequest\SellDeviceRequestController;
-use App\Http\Controllers\Warranty\WarrantyClaimController;
-use App\Http\Controllers\Wishlist\WishlistController;
+use App\Http\Controllers\Api\V1\BuyNow\BuyNowController;
+use App\Http\Controllers\Api\V1\Cart\CartController;
+use App\Http\Controllers\Api\V1\Cart\Coupon\CouponController;
+use App\Http\Controllers\Api\V1\Checkout\CheckoutController;
+use App\Http\Controllers\Api\V1\Customer\Address\ShippingAddressController;
+use App\Http\Controllers\Api\V1\Customer\Profile\AddressController;
+use App\Http\Controllers\Api\V1\Customer\Profile\ProfileController;
+use App\Http\Controllers\Api\V1\Customer\Review\CustomerReviewController;
+use App\Http\Controllers\Api\V1\Guest\GuestPhoneController;
+use App\Http\Controllers\Api\V1\Invoice\InvoiceDownloadController;
+use App\Http\Controllers\Api\V1\Order\OrderController;
+use App\Http\Controllers\Api\V1\SellDeviceRequest\SellDeviceRequestController;
+use App\Http\Controllers\Api\V1\Warranty\WarrantyClaimController;
+use App\Http\Controllers\Api\V1\Wishlist\WishlistController;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Route;
 
@@ -92,14 +92,14 @@ Route::group(['prefix' => 'v1/customer', 'as' => 'customer.'], function (Router 
     $router->post('fail', [BuyNowController::class, 'failed']);
 
     $router->get('bkash-callback', [BuyNowController::class, 'bkashCallback']);
-    $router->get('invoice-download', [InvoiceDownoloadController::class, 'invoiceDownload'])->middleware('throttle:invoice-tracking');
-    $router->get('recent-order', [InvoiceDownoloadController::class, 'recentOrder'])->middleware('throttle:invoice-tracking');
+    $router->get('invoice-download', [InvoiceDownloadController::class, 'invoiceDownload'])->middleware('throttle:invoice-tracking');
+    $router->get('recent-order', [InvoiceDownloadController::class, 'recentOrder'])->middleware('throttle:invoice-tracking');
 
-    $router->post('gust-phone-verify-request', [GustPhoneController::class, 'phoneVerifyRequest'])
+    $router->post('gust-phone-verify-request', [GuestPhoneController::class, 'phoneVerifyRequest'])
         ->name('profile.gust-phone-verify-request')
         ->middleware('throttle:otp-send');
 
-    $router->post('gust-phone-verify', [GustPhoneController::class, 'phoneVerify'])
+    $router->post('gust-phone-verify', [GuestPhoneController::class, 'phoneVerify'])
         ->name('profile.gust-phone-verify')
         ->middleware('throttle:otp-verify');
 

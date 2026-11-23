@@ -2,7 +2,7 @@
 
 namespace Tests\Unit;
 
-use App\Http\Controllers\BuyNow\BuyNowController;
+use App\Http\Controllers\Api\V1\BuyNow\BuyNowController;
 use App\Models\Product\Product;
 use App\Models\Product\ProductVariant;
 use App\Models\Product\VariantPrice;

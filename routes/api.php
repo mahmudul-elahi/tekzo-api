@@ -1,25 +1,25 @@
 <?php
 
-use App\Http\Controllers\Blog\BlogController;
-use App\Http\Controllers\Career\CareerApplieController;
-use App\Http\Controllers\Career\CareerController;
-use App\Http\Controllers\Contact\ContactController;
-use App\Http\Controllers\Elite\EliteController;
-use App\Http\Controllers\Emi\EmiController;
-use App\Http\Controllers\Faq\FaqController;
-use App\Http\Controllers\Getway\SslCommerzPaymentController;
-use App\Http\Controllers\Home\HomePageController;
-use App\Http\Controllers\Offer\OfferController;
-use App\Http\Controllers\Order\OrderTrackController;
-use App\Http\Controllers\OurTeam\OurTeamController;
-use App\Http\Controllers\Outlet\OutletController;
-use App\Http\Controllers\Policy\PolicyController;
-use App\Http\Controllers\PreOwned\PreOwnedController;
-use App\Http\Controllers\Product\ProductController;
-use App\Http\Controllers\Refurbished\RefurbishedController;
-use App\Http\Controllers\Seo\SeoController;
-use App\Http\Controllers\Setting\SettingController;
-use App\Http\Controllers\Shop\ShopController;
+use App\Http\Controllers\Api\V1\Blog\BlogController;
+use App\Http\Controllers\Api\V1\Career\CareerApplicationController;
+use App\Http\Controllers\Api\V1\Career\CareerController;
+use App\Http\Controllers\Api\V1\Contact\ContactController;
+use App\Http\Controllers\Api\V1\Elite\EliteController;
+use App\Http\Controllers\Api\V1\Emi\EmiController;
+use App\Http\Controllers\Api\V1\Faq\FaqController;
+use App\Http\Controllers\Api\V1\Gateway\SslCommerzPaymentController;
+use App\Http\Controllers\Api\V1\Home\HomePageController;
+use App\Http\Controllers\Api\V1\Offer\OfferController;
+use App\Http\Controllers\Api\V1\Order\OrderTrackController;
+use App\Http\Controllers\Api\V1\OurTeam\OurTeamController;
+use App\Http\Controllers\Api\V1\Outlet\OutletController;
+use App\Http\Controllers\Api\V1\Policy\PolicyController;
+use App\Http\Controllers\Api\V1\PreOwned\PreOwnedController;
+use App\Http\Controllers\Api\V1\Product\ProductController;
+use App\Http\Controllers\Api\V1\Refurbished\RefurbishedController;
+use App\Http\Controllers\Api\V1\Seo\SeoController;
+use App\Http\Controllers\Api\V1\Setting\SettingController;
+use App\Http\Controllers\Api\V1\Shop\ShopController;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Route;
 
@@ -208,7 +208,7 @@ Route::group(['prefix' => 'v1', 'as' => 'api.'], function (Router $router) {
     $router->get('storages', [SettingController::class, 'storage'])
         ->name('storages');
 
-    $router->post('job-apply/{slug}', [CareerApplieController::class, 'store'])
+    $router->post('job-apply/{slug}', [CareerApplicationController::class, 'store'])
         ->name('job.apply')
         ->middleware('throttle:public-write');
 
