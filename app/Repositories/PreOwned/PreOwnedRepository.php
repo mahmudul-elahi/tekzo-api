@@ -3,8 +3,12 @@
 namespace App\Repositories\PreOwned;
 
 use App\Models\PreOwned\PreOwned;
+use App\Models\PreOwned\PreOwnedProductSeo;
 use App\Repositories\BaseRepository;
+use App\Support\Filters\Product\UsedProductFilter;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection as SupportCollection;
 
 class PreOwnedRepository extends BaseRepository
 {
@@ -81,6 +85,84 @@ class PreOwnedRepository extends BaseRepository
             ->inRandomOrder()
             ->take($limit)
             ->get();
+    }
+
+    /**
+     * The first pre-owned unit of a product, with the product's brand banner.
+     */
+    public function findFirstOfProductWithBrand(string $productSlug): ?PreOwned
+    {
+        return $this->query()
+            ->whereHas('product', function ($q) use ($productSlug) {
+                $q->where('slug', $productSlug);
+            })
+            ->with(['product' => function ($q) {
+                $q->select(['id', 'product_name', 'slug', 'brand_id'])
+                    ->with(['brand:id,name,shop_banner']);
+            }])
+            ->first();
+    }
+
+    /**
+     * A product's pre-owned units with condition/storage/stock/price filters and sorting applied.
+     *
+     * @param  array{condition: mixed, storage: mixed, stock: mixed, min_price: mixed, max_price: mixed, sort_by: mixed}  $filters
+     */
+    public function paginateOfProduct(string $productSlug, array $filters, int $perPage): LengthAwarePaginator
+    {
+        $query = $this->query()
+            ->whereHas('product', function ($q) use ($productSlug) {
+                $q->where('slug', $productSlug);
+            });
+
+        (new UsedProductFilter($filters))->apply($query);
+
+        return $query
+            ->with([
+                'product' => function ($q) {
+                    $q->select(['id', 'product_name', 'headline', 'slug', 'brand_id', 'category_id', 'short_description'])
+                        ->with([
+                            'specificationItems.parent',
+                            'specificationItems.sub',
+                        ]);
+                },
+                'images',
+                'attributes' => function ($q) {
+                    $q->with('attribute', 'attributeValue');
+                },
+            ])
+            ->paginate($perPage);
+    }
+
+    /**
+     * Unsold units of the given products, newest first, grouped by product id.
+     *
+     * @param  SupportCollection<int, int>  $productIds
+     * @return SupportCollection<int, Collection<int, PreOwned>>
+     */
+    public function availableUnitsGroupedByProduct(SupportCollection $productIds): SupportCollection
+    {
+        return $this->query()
+            ->whereIn('product_id', $productIds)
+            ->where('is_sold', '!=', true)
+            ->with([
+                'attributes.attribute',
+                'attributes.attributeValue',
+                'product:id,product_name,headline,slug',
+            ])
+            ->orderByDesc('id')
+            ->get()
+            ->groupBy('product_id');
+    }
+
+    /**
+     * The SEO entry for a product's pre-owned listing page.
+     */
+    public function findProductSeo(int $productId): ?PreOwnedProductSeo
+    {
+        return PreOwnedProductSeo::query()
+            ->where('product_id', $productId)
+            ->first();
     }
 
     /**

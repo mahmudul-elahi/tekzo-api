@@ -30,6 +30,36 @@ class BrandRepository extends BaseRepository
             ->get();
     }
 
+    /**
+     * Name and slug of the active brands among the given ids, by name.
+     *
+     * @param  SupportCollection<int, int>|array<int, int>  $brandIds
+     * @return Collection<int, Brand>
+     */
+    public function activeNamesByIds(SupportCollection|array $brandIds): Collection
+    {
+        return $this->query()
+            ->whereIn('id', $brandIds)
+            ->where('status', true)
+            ->select(['name', 'slug'])
+            ->orderBy('name')
+            ->get();
+    }
+
+    /**
+     * Brands with at least one unsold pre-owned unit, by name.
+     *
+     * @return Collection<int, Brand>
+     */
+    public function withAvailablePreOwned(): Collection
+    {
+        return $this->query()
+            ->select(['id', 'name', 'slug'])
+            ->whereHas('products.preOwned', fn ($q) => $q->where('is_sold', '!=', true))
+            ->orderBy('name')
+            ->get();
+    }
+
     public function findWithDescriptionBySlug(string $slug): ?Brand
     {
         return $this->query()

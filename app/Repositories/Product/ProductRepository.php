@@ -390,6 +390,266 @@ class ProductRepository extends BaseRepository
     }
 
     /**
+     * The shop listing: visible products from active brands, in stock first.
+     * Without a price sort, then by numbering and newest; with one, the filter's
+     * price ordering comes next and the id is the final tiebreaker.
+     *
+     * @param  array{brand: mixed, category: mixed, stock: mixed, min_price: mixed, max_price: mixed, sort_by: mixed}  $filters
+     */
+    public function paginateShop(array $filters, int $perPage, mixed $page): LengthAwarePaginator
+    {
+        $isPriceSort = in_array($filters['sort_by'], ['price_asc', 'price_desc']);
+
+        $query = $this->query()
+            ->select(
+                'id',
+                'slug',
+                'product_image',
+                'product_name',
+                'category_id',
+                'brand_id',
+                'status',
+                'a_status',
+                'headline',
+                'created_at',
+                'numbering',
+                'has_official_warranty',
+                'is_chinese',
+                'is_unofficial',
+                'is_refurbished',
+                'purchase_point',
+                'booking_amount'
+
+            )
+            ->whereHas('brand', function ($query) {
+                $query->where('status', true);
+            })
+            ->addSelect([
+                'has_stock' => ProductVariant::selectRaw('MAX(stock)')
+                    ->whereColumn('product_id', 'products.id')
+                    ->where('status', '1')
+                    ->limit(1),
+            ])
+            ->whereIn('products.status', [ProductStatus::Active->value, ProductStatus::Comming->value])
+            ->orderByRaw('CASE WHEN has_stock > 0 THEN 0 ELSE 1 END ASC')
+            // A price sort's own ordering has to be the next criterion right after
+            // stock — numbering/id here would otherwise decide almost every row before
+            // price ever got a chance to (orderBy calls are additive, not replacing).
+            ->when(! $isPriceSort, function ($query) {
+                $query->orderBy('numbering', 'asc')->orderByDesc('id');
+            })
+            ->with([
+                'category:id,name,slug',
+                'offerProduct',
+                'stockVariant' => function ($query) {
+                    $query->where('status', '1')
+                        ->orderByLowestPrice()
+                        ->with(['price']);
+                },
+            ])
+            ->withCount(['offerProduct', 'cares'])
+            ->withAvg('reviews', 'rating');
+
+        (new ProductFilter($filters))->apply($query);
+
+        if ($isPriceSort) {
+            // Products can tie on price — without a unique final tiebreaker, ties have
+            // no guaranteed order across separate paginated requests, which can
+            // duplicate or skip a product between pages.
+            $query->orderBy('products.id', 'asc');
+        }
+
+        return $query->paginate($perPage, ['products.*'], 'page', $page);
+    }
+
+    /**
+     * Slug and updated_at of every visible product with a stock variant, newest first (sitemap).
+     *
+     * @return Collection<int, Product>
+     */
+    public function sitemapEntries(): Collection
+    {
+        return $this->query()
+            ->whereIn('status', [ProductStatus::Active->value, ProductStatus::Comming->value])
+            ->whereHas('brand', function ($query) {
+                $query->where('status', true);
+            })
+            ->whereHas('stockVariant')
+            ->select(['slug', 'updated_at'])
+            ->orderByDesc('id')
+            ->get();
+    }
+
+    /**
+     * Active refurbished products from active brands with a stock variant, in stock first.
+     * Sorting follows the same rules as the shop listing.
+     *
+     * @param  array{brand: mixed, stock: mixed, min_price: mixed, max_price: mixed, sort_by: mixed}  $filters
+     */
+    public function paginateRefurbished(array $filters, int $perPage): LengthAwarePaginator
+    {
+        $isPriceSort = in_array($filters['sort_by'], ['price_asc', 'price_desc']);
+
+        $query = $this->query()
+            ->select('id', 'slug', 'product_name', 'headline', 'product_image', 'category_id', 'has_official_warranty', 'is_chinese', 'is_unofficial', 'is_refurbished', 'purchase_point', 'booking_amount')
+            ->where('status', ProductStatus::Active->value)
+            ->where('is_refurbished', true)
+            ->whereHas('brand', function ($query) {
+                $query->where('status', true);
+            })
+            ->whereHas('stockVariant')
+            ->with(['category:id,name,slug', 'offerProduct', 'stockVariant' => function ($q) {
+                $q->where('status', '1')
+                    ->orderByLowestPrice()
+                    ->with(['price']);
+            }])
+            ->addSelect([
+                'has_stock' => ProductVariant::selectRaw('MAX(stock)')
+                    ->whereColumn('product_id', 'products.id')
+                    ->where('status', '1')
+                    ->limit(1),
+            ])
+            ->whereIn('products.status', [ProductStatus::Active->value, ProductStatus::Comming->value])
+            ->orderByRaw('CASE WHEN has_stock > 0 THEN 0 ELSE 1 END ASC')
+            ->when(! $isPriceSort, function ($query) {
+                $query->orderBy('numbering', 'asc')->orderByDesc('id');
+            })
+            ->withCount(['giftProduct', 'cares'])
+            ->withAvg('reviews', 'rating');
+
+        (new ProductFilter($filters))->apply($query);
+
+        if ($isPriceSort) {
+            $query->orderBy('products.id', 'asc');
+        }
+
+        return $query->paginate($perPage);
+    }
+
+    /**
+     * Distinct brand ids of active refurbished products from active brands.
+     *
+     * @return \Illuminate\Support\Collection<int, int>
+     */
+    public function refurbishedBrandIds(): \Illuminate\Support\Collection
+    {
+        return $this->query()
+            ->select('brand_id')
+            ->where('status', ProductStatus::Active->value)
+            ->where('is_refurbished', true)
+            ->whereHas('brand', function ($query) {
+                $query->where('status', true);
+            })
+            ->distinct()
+            ->pluck('brand_id');
+    }
+
+    /**
+     * Active products in an offer, with only that offer's offerProduct loaded.
+     */
+    public function paginateActiveInOffer(int $offerId, int $perPage): LengthAwarePaginator
+    {
+        return $this->query()
+            ->whereHas('offerProduct', function ($query) use ($offerId) {
+                $query->where('offer_id', $offerId);
+            })
+            ->with([
+                'brand:id,name,slug',
+                'stockVariant' => function ($query) {
+                    $query->where('status', '1')
+                        ->orderByLowestPrice()
+                        ->with('price');
+                },
+                'offerProduct' => function ($query) use ($offerId) {
+                    $query->where('offer_id', $offerId);
+                },
+            ])
+            ->withAvg('reviews', 'rating')
+            ->withCount('cares')
+            ->where('status', ProductStatus::Active->value)
+            ->paginate($perPage);
+    }
+
+    /**
+     * Products that have pre-owned units matching the stock/price filters, each with those
+     * units, their count and price range. Apple first when no sort is given.
+     *
+     * @param  array{brand: ?string, category: ?string, search: ?string, stock: mixed, min_price: mixed, max_price: mixed, sort_by: mixed}  $filters
+     */
+    public function paginateWithPreOwnedUnits(array $filters, int $perPage): LengthAwarePaginator
+    {
+        $stock = $filters['stock'];
+        $minPrice = $filters['min_price'];
+        $maxPrice = $filters['max_price'];
+        $sortBy = $filters['sort_by'];
+
+        $preOwnedConstraint = function ($query) use ($stock, $minPrice, $maxPrice) {
+            if ($stock === 'in_stock') {
+                $query->where('is_sold', false);
+            } elseif ($stock === 'out_of_stock') {
+                $query->where('is_sold', true);
+            }
+
+            if ($minPrice !== null && $minPrice !== '') {
+                $query->where('price', '>=', $minPrice);
+            }
+
+            if ($maxPrice !== null && $maxPrice !== '') {
+                $query->where('price', '<=', $maxPrice);
+            }
+        };
+
+        return $this->query()
+            ->when($filters['brand'] !== null, function ($query) use ($filters) {
+                $query->whereHas('brand', function ($q) use ($filters) {
+                    $q->where('slug', $filters['brand']);
+                });
+            })
+            ->when($filters['category'] !== null, function ($query) use ($filters) {
+                $query->whereHas('category', function ($q) use ($filters) {
+                    $q->where('slug', $filters['category']);
+                });
+            })
+            ->when($filters['search'] !== null, function ($query) use ($filters) {
+                $query->whereRaw('LOWER(product_name) LIKE ?', ['%'.strtolower($filters['search']).'%']);
+            })
+            ->select(['id', 'product_name', 'slug', 'headline', 'category_id', 'brand_id'])
+            ->whereHas('preOwned', $preOwnedConstraint)
+            ->withCount(['preOwned as total_pre_owned' => $preOwnedConstraint])
+            ->withMin(['preOwned' => $preOwnedConstraint], 'price')
+            ->withMax(['preOwned' => $preOwnedConstraint], 'price')
+            ->with(['preOwned' => $preOwnedConstraint, 'category:id,name,slug', 'brand:id,name,slug'])
+            ->when($sortBy === 'price_asc', fn ($query) => $query->orderBy('pre_owned_min_price', 'asc')->orderBy('id', 'asc'))
+            ->when($sortBy === 'price_desc', fn ($query) => $query->orderBy('pre_owned_min_price', 'desc')->orderBy('id', 'asc'))
+            ->when($sortBy === 'newest', fn ($query) => $query->orderByDesc('id'))
+            ->when(! $sortBy, function ($query) {
+                $query->orderByRaw("CASE WHEN (SELECT slug FROM brands WHERE brands.id = products.brand_id) = 'apple' THEN 0 ELSE 1 END ASC")
+                    ->orderByDesc('id');
+            })
+            ->paginate($perPage);
+    }
+
+    /**
+     * Products with at least one unsold pre-owned unit (optionally from the given brands),
+     * with that count. Apple first, then newest.
+     *
+     * @param  array<int, string>  $brandSlugs
+     */
+    public function paginateWithAvailablePreOwned(array $brandSlugs, int $perPage): LengthAwarePaginator
+    {
+        return $this->query()
+            ->select(['id', 'product_name', 'slug', 'brand_id'])
+            ->whereHas('preOwned', fn ($q) => $q->where('is_sold', '!=', true))
+            ->when(count($brandSlugs) > 0, function ($query) use ($brandSlugs) {
+                $query->whereHas('brand', fn ($q) => $q->whereIn('slug', $brandSlugs));
+            })
+            ->withCount(['preOwned as available_pre_owned_count' => fn ($q) => $q->where('is_sold', '!=', true)])
+            ->orderByRaw("CASE WHEN (SELECT slug FROM brands WHERE brands.id = products.brand_id) = 'apple' THEN 0 ELSE 1 END ASC")
+            ->orderByDesc('id')
+            ->paginate($perPage);
+    }
+
+    /**
      * Record a unique view; repeat views from the same visitor are ignored.
      */
     public function recordView(int $productId, string $visitorHash): void
