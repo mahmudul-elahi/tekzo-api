@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Middleware\CacheResponse;
 use App\Http\Middleware\ForceJsonResponse;
 use App\Http\Middleware\ReplaceCdnUrl;
 use Illuminate\Auth\AuthenticationException;
@@ -18,6 +19,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->alias([
+            'cache.response' => CacheResponse::class,
+        ]);
+
         // Force JSON response for all /api/* routes
         $middleware->api(append: [
             'throttle:api',

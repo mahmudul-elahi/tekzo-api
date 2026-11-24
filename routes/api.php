@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\Blog\BlogController;
+use App\Http\Controllers\Api\V1\Cache\ResponseCacheController;
 use App\Http\Controllers\Api\V1\Career\CareerApplicationController;
 use App\Http\Controllers\Api\V1\Career\CareerController;
 use App\Http\Controllers\Api\V1\Contact\ContactController;
@@ -39,45 +40,58 @@ Route::group(['prefix' => 'v1', 'as' => 'api.'], function (Router $router) {
         ->name('search.product-results');
 
     $router->get('home-categories', [HomePageController::class, 'homeCategory'])
-        ->name('categories.home');
+        ->name('categories.home')
+        ->middleware('cache.response');
 
     $router->get('categories', [HomePageController::class, 'categories'])
-        ->name('categories');
+        ->name('categories')
+        ->middleware('cache.response');
 
     $router->get('category-tree', [HomePageController::class, 'categoryTree'])
-        ->name('category-tree');
+        ->name('category-tree')
+        ->middleware('cache.response');
 
     $router->get('brands', [HomePageController::class, 'brand'])
-        ->name('brands');
+        ->name('brands')
+        ->middleware('cache.response');
 
     $router->get('all-brands', [HomePageController::class, 'allBrand'])
-        ->name('all-brands');
+        ->name('all-brands')
+        ->middleware('cache.response');
 
     $router->get('category-products', [HomePageController::class, 'categoryProducts'])
-        ->name('category-products');
+        ->name('category-products')
+        ->middleware('cache.response');
 
     $router->get('sliders', [HomePageController::class, 'slider'])
-        ->name('sliders');
+        ->name('sliders')
+        ->middleware('cache.response');
 
     $router->get('flash-sale-products', [HomePageController::class, 'flashSaleProduct'])
-        ->name('flash-sale.products');
+        ->name('flash-sale.products')
+        ->middleware('cache.response:60');
 
     $router->get('flash-sales', [HomePageController::class, 'flashSale'])
-        ->name('flash.sales');
+        ->name('flash.sales')
+        ->middleware('cache.response:60');
 
     $router->get('featured-products', [HomePageController::class, 'featuredProduct'])
-        ->name('featured.products');
+        ->name('featured.products')
+        ->middleware('cache.response');
 
     $router->get('home-new-arrival-products', [HomePageController::class, 'newArrivalProduct'])
-        ->name('home-new-arrival.products');
+        ->name('home-new-arrival.products')
+        ->middleware('cache.response');
 
     $router->get('new-arrival-products', [HomePageController::class, 'newArrival'])
         ->name('new-arrivals.index');
 
-    $router->get('home-pre-owned-products', [HomePageController::class, 'homePreOwnedProduct']);
+    $router->get('home-pre-owned-products', [HomePageController::class, 'homePreOwnedProduct'])
+        ->middleware('cache.response');
 
     $router->get('news', [HomePageController::class, 'news'])
-        ->name('news.home');
+        ->name('news.home')
+        ->middleware('cache.response');
 
     $router->get('blogs', [BlogController::class, 'index'])
         ->name('blogs.index');
@@ -101,7 +115,8 @@ Route::group(['prefix' => 'v1', 'as' => 'api.'], function (Router $router) {
         ->name('blog-tags.show');
 
     $router->get('reels-videos', [HomePageController::class, 'reelsVideo'])
-        ->name('reels.home');
+        ->name('reels.home')
+        ->middleware('cache.response');
 
     $router->get('shops', [ShopController::class, 'index'])
         ->name('shop-products');
@@ -165,10 +180,12 @@ Route::group(['prefix' => 'v1', 'as' => 'api.'], function (Router $router) {
         ->middleware('throttle:public-write');
 
     $router->get('settings', [SettingController::class, 'index'])
-        ->name('settings.index');
+        ->name('settings.index')
+        ->middleware('cache.response');
 
     $router->get('seos/{pageSlug}', [SeoController::class, 'seo'])
-        ->name('settings.seo');
+        ->name('settings.seo')
+        ->middleware('cache.response');
 
     $router->get('careers', [CareerController::class, 'index'])
         ->name('careers.index');
@@ -216,10 +233,14 @@ Route::group(['prefix' => 'v1', 'as' => 'api.'], function (Router $router) {
         ->name('emi-list.index');
 
     $router->get('popup-dialogs', [SettingController::class, 'popupDailog'])
-        ->name('popup-dialogs.index');
+        ->name('popup-dialogs.index')
+        ->middleware('cache.response');
 
     $router->get('elite', [EliteController::class, 'index'])
         ->name('elite.index');
+
+    $router->delete('response-cache', [ResponseCacheController::class, 'destroy'])
+        ->name('response-cache.destroy');
 });
 
 // SSLCommerz Webhook Routes
