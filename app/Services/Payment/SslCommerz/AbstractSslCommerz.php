@@ -2,6 +2,8 @@
 
 namespace App\Services\Payment\SslCommerz;
 
+use Illuminate\Http\RedirectResponse;
+
 abstract class AbstractSslCommerz implements SslCommerzInterface
 {
     protected $apiUrl;
@@ -80,9 +82,11 @@ abstract class AbstractSslCommerz implements SslCommerzInterface
         return $response;
     }
 
-    protected function redirect($url)
+    /**
+     * Build a redirect response instead of calling header()/exit, which would kill a long-lived Octane worker.
+     */
+    protected function redirect(string $url): RedirectResponse
     {
-        header("Location: $url");
-        exit;
+        return redirect()->away($url);
     }
 }
