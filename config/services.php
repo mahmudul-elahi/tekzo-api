@@ -38,6 +38,19 @@ return [
     ],
 
     'tenant_slug' => env('E_COMMERCE_TYPE', 'salamat-innovation'),
+
+    /*
+     * Shared secret sent as the X-Internal-Token header by trusted servers
+     * (Next.js SSR/ISR, admin panel). Bypasses the API rate limiter and
+     * authorises flushing the response cache.
+     */
+    'internal_api' => [
+        'token' => env('INTERNAL_API_TOKEN'),
+    ],
+
+    'response_cache' => [
+        'ttl' => (int) env('RESPONSE_CACHE_TTL', 300),
+    ],
     'front_base_url' => env('FRONT_BASE_URL', 'https://salamatinnovation.com'),
 
     'reve_sms' => [
