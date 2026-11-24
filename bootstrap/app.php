@@ -19,6 +19,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Octane sits behind a local Nginx reverse proxy; trust it so request()->ip() and HTTPS detection use the forwarded client values.
+        $middleware->trustProxies(at: '127.0.0.1');
+
         $middleware->alias([
             'cache.response' => CacheResponse::class,
         ]);
