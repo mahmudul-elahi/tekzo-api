@@ -270,7 +270,7 @@ return [
          * ServerSideEncryption, Metadata, ACL, ContentEncoding
          */
         'extra_headers' => [
-            'CacheControl' => 'max-age=604800',
+            'CacheControl' => 'public, max-age=31536000, immutable',
         ],
     ],
 
