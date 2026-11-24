@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Support\InternalApiToken;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -19,7 +20,9 @@ class AppServiceProvider extends ServiceProvider
     {
         Model::preventLazyLoading(! $this->app->isProduction());
 
-        RateLimiter::for('api', fn (Request $request) => Limit::perMinute(120)->by($request->user()?->id ?: $request->ip()));
+        RateLimiter::for('api', fn (Request $request) => InternalApiToken::matches($request)
+            ? Limit::none()
+            : Limit::perMinute(120)->by($request->user()?->id ?: $request->ip()));
 
         RateLimiter::for('auth', function (Request $request) {
             $email = (string) $request->input('email', '');
