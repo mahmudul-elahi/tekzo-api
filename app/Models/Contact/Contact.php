@@ -18,6 +18,8 @@ use Spatie\MediaLibrary\InteractsWithMedia;
     'name',
     'email',
     'phone',
+    'secondary_phone',
+    'address',
     'password',
     'status',
     'type',

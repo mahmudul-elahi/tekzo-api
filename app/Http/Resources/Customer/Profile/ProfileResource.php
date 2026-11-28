@@ -23,6 +23,7 @@ class ProfileResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'phone' => $this->phone,
+            'secondary_phone' => $this->resource->secondary_phone,
             'address' => $this->address,
             'gender' => $this->gender,
             'date_of_birth' => $this->date_of_birth,
