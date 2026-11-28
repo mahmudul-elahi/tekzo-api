@@ -60,6 +60,30 @@ return [
         'endpoint' => env('REVE_SMS_ENDPOINT', 'https://smpp.revesms.com:7790/sendtext'),
     ],
 
+    /*
+     * Social login. The storefront signs the customer in with the provider and sends the
+     * resulting token to the API, so no redirect URL is needed. The Apple client ID is the
+     * Services ID (web) or bundle ID (iOS) the ID tokens are issued to.
+     */
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI'),
+    ],
+
+    'facebook' => [
+        'client_id' => env('FACEBOOK_CLIENT_ID'),
+        'client_secret' => env('FACEBOOK_CLIENT_SECRET'),
+        'redirect' => env('FACEBOOK_REDIRECT_URI'),
+    ],
+
+    'apple' => [
+        'client_id' => env('APPLE_CLIENT_ID'),
+        'client_secret' => env('APPLE_CLIENT_SECRET'),
+        'redirect' => env('APPLE_REDIRECT_URI'),
+        'audiences' => array_filter(explode(',', (string) env('APPLE_EXTRA_AUDIENCES', ''))),
+    ],
+
     'invoice' => [
         'download_logo_url' => env('INVOICE_DOWNLOAD_LOGO_URL', 'https://d2c2zgda4zwbg9.cloudfront.net/481/TEKZO-Logo-1000x1000.png'),
         'confirm_logo_url' => env('INVOICE_CONFIRM_LOGO_URL', 'https://salamat-innovation.s3.ap-south-1.amazonaws.com/575/TEKZO-Logo-1000x500.png'),
