@@ -18,7 +18,7 @@ class LoginController extends Controller
     public function login(LoginRequest $request): JsonResponse
     {
         return successResponse([
-            'access_token' => $this->authService->login($request->email, $request->password),
+            'access_token' => $this->authService->login($request->string('login')->toString(), $request->string('password')->toString()),
             'token_type' => 'Bearer',
         ]);
     }

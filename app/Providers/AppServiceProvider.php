@@ -25,9 +25,9 @@ class AppServiceProvider extends ServiceProvider
             : Limit::perMinute(120)->by($request->user()?->id ?: $request->ip()));
 
         RateLimiter::for('auth', function (Request $request) {
-            $email = (string) $request->input('email', '');
+            $login = (string) $request->input('login', $request->input('email', ''));
 
-            return Limit::perMinute(5)->by($request->ip().'|'.$email);
+            return Limit::perMinute(5)->by($request->ip().'|'.$login);
         });
 
         RateLimiter::for('otp-send', function (Request $request) {

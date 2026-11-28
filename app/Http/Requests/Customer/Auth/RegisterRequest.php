@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Customer\Auth;
 
+use App\Support\PhoneNumber;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
@@ -50,27 +51,8 @@ class RegisterRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         if ($this->phone) {
-
-            // remove everything except numbers
-            $phone = preg_replace('/[^0-9]/', '', $this->phone);
-
-            // 017xxxxxxxx
-            if (str_starts_with($phone, '01')) {
-                $phone = '+88'.$phone;
-            }
-
-            // 8801xxxxxxxx
-            elseif (str_starts_with($phone, '8801')) {
-                $phone = '+'.$phone;
-            }
-
-            // 801xxxxxxxx (missing one 8)
-            elseif (str_starts_with($phone, '801')) {
-                $phone = '+8'.$phone;
-            }
-
             $this->merge([
-                'phone' => $phone,
+                'phone' => PhoneNumber::normalize((string) $this->phone),
             ]);
         }
     }

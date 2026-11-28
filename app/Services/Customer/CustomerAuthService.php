@@ -27,15 +27,18 @@ class CustomerAuthService
     /**
      * Check the credentials, record the login, and issue a Sanctum token.
      *
-     * @throws ValidationException when the password is wrong
+     * @param  string  $login  an email address, or a mobile number in +8801XXXXXXXXX form
+     *
+     * @throws ValidationException when no registered customer matches the login and password
      */
-    public function login(string $email, string $password): string
+    public function login(string $login, string $password): string
     {
-        $customer = $this->contacts->findByEmail($email);
+        $customer = $this->contacts->findRegisteredByEmailOrPhone($login)
+            ->first(fn (Contact $candidate): bool => Hash::check($password, $candidate->password));
 
-        if (! $customer instanceof Contact || ! Hash::check($password, $customer->password)) {
+        if (! $customer instanceof Contact) {
             throw ValidationException::withMessages([
-                'password' => ['Incorrect your password'],
+                'password' => ['The email/mobile number or password is incorrect.'],
             ]);
         }
 
