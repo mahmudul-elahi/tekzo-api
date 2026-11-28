@@ -16,6 +16,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'new_district_id',
     'area_id',
     'street',
+    'recipient_name',
+    'recipient_phone',
     'label',
     'is_default_shipping',
     'is_default_billing',

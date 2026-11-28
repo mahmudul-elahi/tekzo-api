@@ -24,6 +24,8 @@ class CustomerAddressResource extends JsonResource
             'id' => $this->id,
             'contact_id' => $this->contact_id,
             'street' => $this->street,
+            'recipient_name' => $this->resource->recipient_name,
+            'recipient_phone' => $this->resource->recipient_phone,
             'label' => $this->label,
             'is_default_shipping' => $this->is_default_shipping,
             'is_default_billing' => $this->is_default_billing,
