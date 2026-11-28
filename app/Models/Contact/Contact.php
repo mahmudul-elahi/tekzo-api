@@ -7,6 +7,7 @@ use App\Models\Elite\Elite;
 use App\Models\Point\PointTransaction;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -63,6 +64,14 @@ class Contact extends Authenticatable implements HasMedia
     public function eliteHistories()
     {
         return $this->hasMany(ContactEliteHistory::class);
+    }
+
+    /**
+     * @return HasMany<ContactSocialAccount, $this>
+     */
+    public function socialAccounts(): HasMany
+    {
+        return $this->hasMany(ContactSocialAccount::class);
     }
 
     public function getCustomerProfilePictureAttribute(): ?string
