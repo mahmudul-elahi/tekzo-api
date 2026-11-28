@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\Cart\CartController;
 use App\Http\Controllers\Api\V1\Cart\Coupon\CouponController;
 use App\Http\Controllers\Api\V1\Checkout\CheckoutController;
 use App\Http\Controllers\Api\V1\Customer\Address\ShippingAddressController;
+use App\Http\Controllers\Api\V1\Customer\Dashboard\DashboardController;
 use App\Http\Controllers\Api\V1\Customer\Profile\AddressController;
 use App\Http\Controllers\Api\V1\Customer\Profile\ProfileController;
 use App\Http\Controllers\Api\V1\Customer\Review\CustomerReviewController;
@@ -20,6 +21,9 @@ use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Route;
 
 Route::group(['prefix' => 'v1/customer', 'as' => 'customer.', 'middleware' => ['auth:sanctum']], function (Router $router) {
+
+    $router->get('dashboard', DashboardController::class)
+        ->name('dashboard');
 
     $router->get('profile', [ProfileController::class, 'index'])
         ->name('profile.index');
