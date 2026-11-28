@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Customer\Profile;
 
+use App\Support\PhoneNumber;
 use Illuminate\Foundation\Http\FormRequest;
 
 class PhoneChangeRequest extends FormRequest
@@ -26,5 +27,14 @@ class PhoneChangeRequest extends FormRequest
                 'unique:contacts,phone,'.auth()->guard('customer')->id(),
             ],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if (is_string($this->input('phone_number'))) {
+            $this->merge([
+                'phone_number' => PhoneNumber::normalize($this->input('phone_number')),
+            ]);
+        }
     }
 }

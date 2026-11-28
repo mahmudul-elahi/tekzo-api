@@ -7,6 +7,7 @@ use App\Mail\Customer\EmailVerifyRequestMail;
 use App\Models\Contact\Contact;
 use App\Models\Customer\VerificationCode;
 use App\Repositories\Customer\VerificationCodeRepository;
+use App\Support\PhoneNumber;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -118,7 +119,10 @@ class ProfileService
      */
     public function requestPhoneChange(Contact $customer, string $phoneNumber): void
     {
-        if ($customer->phone === $phoneNumber) {
+        $isCurrentNumber = $customer->phone !== null
+            && PhoneNumber::normalize($customer->phone) === PhoneNumber::normalize($phoneNumber);
+
+        if ($isCurrentNumber && $customer->getAttribute('phone_verified_at') !== null) {
             throw new GeneralException('Phone number already verified');
         }
 
