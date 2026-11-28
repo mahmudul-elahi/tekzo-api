@@ -313,12 +313,12 @@
                     <tr>
                         <td class="label-col">Phone</td>
                         <td class="sep-col">:</td>
-                        <td>{{ $customer->email }}</td>
+                        <td>{{ $customer->phone }}</td>
                     </tr>
                     <tr>
                         <td class="label-col">Email</td>
                         <td class="sep-col">:</td>
-                        <td>{{ $customer->phone }}</td>
+                        <td>{{ $customer->email }}</td>
                     </tr>
                     <tr>
                         <td class="label-col">Address</td>
@@ -333,6 +333,18 @@
                         </td>
                         @endif
                     </tr>
+                    @if($order->shippingAddress?->recipient_name)
+                    <tr>
+                        <td class="label-col">Receiver</td>
+                        <td class="sep-col">:</td>
+                        <td>{{ $order->shippingAddress->recipient_name }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label-col">Receiver Phone</td>
+                        <td class="sep-col">:</td>
+                        <td>{{ $order->shippingAddress->recipient_phone }}</td>
+                    </tr>
+                    @endif
                 </table>
             </div>
             <div class="invoice-info">
