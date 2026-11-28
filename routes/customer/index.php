@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\Customer\Address\ShippingAddressController;
 use App\Http\Controllers\Api\V1\Customer\Dashboard\DashboardController;
 use App\Http\Controllers\Api\V1\Customer\Profile\AddressController;
 use App\Http\Controllers\Api\V1\Customer\Profile\ProfileController;
+use App\Http\Controllers\Api\V1\Customer\Profile\SocialAccountController;
 use App\Http\Controllers\Api\V1\Customer\Review\CustomerReviewController;
 use App\Http\Controllers\Api\V1\Guest\GuestPhoneController;
 use App\Http\Controllers\Api\V1\Invoice\InvoiceDownloadController;
@@ -30,6 +31,16 @@ Route::group(['prefix' => 'v1/customer', 'as' => 'customer.', 'middleware' => ['
 
     $router->post('profile', [ProfileController::class, 'update'])
         ->name('profile.update');
+
+    $router->get('social-accounts', [SocialAccountController::class, 'index'])
+        ->name('social-accounts.index');
+
+    $router->post('social-accounts/{provider}', [SocialAccountController::class, 'store'])
+        ->name('social-accounts.store')
+        ->middleware('throttle:auth');
+
+    $router->delete('social-accounts/{provider}', [SocialAccountController::class, 'destroy'])
+        ->name('social-accounts.destroy');
 
     $router->post('change-password', [ProfileController::class, 'password'])
         ->name('profile.password');
